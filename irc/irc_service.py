@@ -5,6 +5,7 @@ from tools import event
 
 class IRCConnection:
     onConnected = event.Event()
+    onBroadcastRequested = event.Event()
 
     def __init__(self, server, domain, port, nickname, channel):
         self.server = server
@@ -46,10 +47,6 @@ class IRCConnection:
 
             ircmsg = ircmsg.strip('\r\n')
             
-            if "PRIVMSG" in ircmsg:
-                await self.handle_priv_message(ircmsg)
-                continue
-            
             if ircmsg.startswith("PING :"):
                 await self.handle_ping()
                 continue
@@ -60,12 +57,23 @@ class IRCConnection:
                 self.logger.log(ircmsg)
                 continue
 
+            # if "PRIVMSG" in ircmsg:
+            #     await self.handle_priv_message(ircmsg)
+            #     continue
+
+            if "BROADCAST" in ircmsg:
+                await self.handle_broadcast_request()
+                continue
+
             self.logger.log(ircmsg)
 
     async def handle_ping(self):
         # self.IRC.send(bytes("PONG :pingisn", "UTF-8"))
         await self.send_data("PONG :pingisn")
         self.logger.log("PONG :pingisn")
+
+    async def handle_broadcast_request(self):
+        await self.onBroadcastRequested.notify(self)
                       
     async def handle_priv_message(self, ircmsg):
         name = ircmsg.split('!', 1)[0][1:]
