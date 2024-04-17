@@ -7,6 +7,7 @@ class IRCConnection:
     onConnected = event.Event()
     onBroadcastRequested = event.Event()
     onSpreadDetected = event.Event()
+    onSomeoneLeftChannel = event.Event()
 
     def __init__(self, server, domain, port, nickname, channel):
         self.server = server
@@ -40,7 +41,7 @@ class IRCConnection:
         self.IRC.send(bytes(command + "\n", "UTF-8"))
 
     async def send_message(self, message):
-        if self.is_connected() == False:
+        if self.is_connected() is False:
             return
         
         await self.send_data(f'PRIVMSG {self.channel} :{message}')
@@ -64,7 +65,7 @@ class IRCConnection:
                 await self.handle_ping()
                 continue
             
-            if self.isConnected == False and ("End of /MOTD command" in ircmsg or "376" in ircmsg):
+            if self.isConnected is False and ("End of /MOTD command" in ircmsg or "376" in ircmsg):
                 self.isConnected = True
                 await self.onConnected.notify(self)
                 self.logger.log(ircmsg)
@@ -82,6 +83,13 @@ class IRCConnection:
                 await self.handle_spread_detected(ircmsg)
                 continue
 
+            if "PART" in ircmsg:
+                await self.handle_part(ircmsg)
+                continue
+
+            if "JOIN" in ircmsg:
+                await self.handle_join()
+
             self.logger.log(ircmsg)
 
     async def handle_ping(self):
@@ -93,7 +101,6 @@ class IRCConnection:
                       
     async def handle_spread_detected(self, ircmsg):
         try:
-            id = ircmsg.split("id:")[1].split(" ")[0]
             ip = ircmsg.split("ip:")[1].split(" ")[0]
             port = ircmsg.split("port:")[1]
             ircNick = ircmsg.split('!', 1)[0][1:]
@@ -101,7 +108,15 @@ class IRCConnection:
             self.logger.log("Error parsing SPREAD message", level=logger.LogLevel.ERROR)
             return
 
-        await self.onSpreadDetected.notify(self, id = id, ip = ip, port = port, ircNick = ircNick)
+        await self.onSpreadDetected.notify(self, ip = ip, port = port, ircNick = ircNick)
+
+    async def handle_part(self, ircmsg):
+        ircNick = ircmsg.split('!', 1)[0][1:]
+        await self.onSomeoneLeftChannel.notify(self, ircNick = ircNick)
+
+    async def handle_join(self):
+        self.logger.log("JOIN detected, sending BROADCAST", level=logger.LogLevel.DEBUG)
+        await self.send_message("BROADCAST")
 
 
     async def handle_priv_message(self, ircmsg):
