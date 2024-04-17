@@ -1,10 +1,11 @@
 import time
 
 class Context:
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, ircNick):
         self.id = self.generate_id()
         self.ip = ip
         self.port = port
+        self.ircNick = ircNick
         self.connected = False
 
     def generate_id(self):
@@ -19,6 +20,9 @@ class Context:
     
     def get_port(self):
         return self.port
+    
+    def get_irc_nick(self):
+        return self.ircNick
     
     def is_connected(self):
         return self.connected
