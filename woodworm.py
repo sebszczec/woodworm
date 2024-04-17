@@ -14,7 +14,7 @@ async def irc_onConnected(*args, **kwargs):
 
 async def irc_onBroadcastRequested(*args, **kwargs):
     irc_connection = args[0]
-    await irc_connection.send_data(f"PRIVMSG #vorest :node_id:{myContext.get_id()} ip:{myContext.get_ip()} port:{myContext.get_port()}")
+    await irc_connection.send_message(f"node_id:{myContext.get_id()} ip:{myContext.get_ip()} port:{myContext.get_port()}")
 
 async def another_loop():
     while True:
@@ -33,7 +33,6 @@ async def main():
         tg.create_task(irc_connection.listen())
         tg.create_task(another_loop())
         
-
 if __name__ == "__main__":
     my_ip = socket.gethostbyname(socket.gethostname())
     myContext = context.Context(my_ip, 3000)

@@ -32,6 +32,9 @@ class IRCConnection:
     async def send_data(self, command):
         self.IRC.send(bytes(command + "\n", "UTF-8"))
 
+    async def send_message(self, message):
+        await self.send_data(f'PRIVMSG {self.channel} :{message}')
+
     async def listen(self):
         while True:
             await asyncio.sleep(0.1)
@@ -68,7 +71,6 @@ class IRCConnection:
             self.logger.log(ircmsg)
 
     async def handle_ping(self):
-        # self.IRC.send(bytes("PONG :pingisn", "UTF-8"))
         await self.send_data("PONG :pingisn")
         self.logger.log("PONG :pingisn")
 
