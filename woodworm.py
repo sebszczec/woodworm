@@ -36,4 +36,5 @@ async def main():
 if __name__ == "__main__":
     my_ip = socket.gethostbyname(socket.gethostname())
     myContext = context.Context(my_ip, 3000)
+    myContext.set_connected(True)
     asyncio.run(main())
