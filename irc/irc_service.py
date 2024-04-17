@@ -15,6 +15,7 @@ class IRCConnection:
         self.IRC = None
         self.logger = logger.Logger()
         self.MSG_LEN = 2048
+        self.isConnected = False
 
     async def connect(self):
         self.IRC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -30,36 +31,41 @@ class IRCConnection:
     async def send_data(self, command):
         self.IRC.send(bytes(command + "\n", "UTF-8"))
 
-    async def listener(self):
-        self.IRC.settimeout(0.1)
-        try:
-            ircmsg = self.IRC.recv(self.MSG_LEN).decode("UTF-8")
-        except socket.timeout:
-            return
+    async def listen(self):
+        while True:
+            await asyncio.sleep(0.1)
+            
+            self.IRC.settimeout(0.1)
+            try:
+                ircmsg = self.IRC.recv(self.MSG_LEN).decode("UTF-8")
+            except socket.timeout:
+                continue
 
-        if len(ircmsg) == 0:
-            return
+            if len(ircmsg) == 0:
+                continue
 
-        ircmsg = ircmsg.strip('\r\n')
-        
-        if "PRIVMSG" in ircmsg:
-            await self.handle_priv_message(ircmsg)
-            return
-        
-        if ircmsg.startswith("PING :"):
-            await self.handle_ping()
-            return
-        
-        if "End of /MOTD command" in ircmsg or "376" in ircmsg:
-            await self.onConnected.notify(self)
+            ircmsg = ircmsg.strip('\r\n')
+            
+            if "PRIVMSG" in ircmsg:
+                await self.handle_priv_message(ircmsg)
+                continue
+            
+            if ircmsg.startswith("PING :"):
+                await self.handle_ping()
+                continue
+            
+            if self.isConnected == False and ("End of /MOTD command" in ircmsg or "376" in ircmsg):
+                self.isConnected = True
+                await self.onConnected.notify(self)
+                self.logger.log(ircmsg)
+                continue
+
             self.logger.log(ircmsg)
-            return
-
-        self.logger.log(ircmsg)
 
     async def handle_ping(self):
         # self.IRC.send(bytes("PONG :pingisn", "UTF-8"))
         await self.send_data("PONG :pingisn")
+        self.logger.log("PONG :pingisn")
                       
     async def handle_priv_message(self, ircmsg):
         name = ircmsg.split('!', 1)[0][1:]
