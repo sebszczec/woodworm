@@ -19,4 +19,4 @@ if __name__ == "__main__":
     tcpPort = int(sys.argv[7])
 
     worm = woodworm.Woodworm(pathToFiles, ircNick, channel, domain, ircServer, ircServerPort, tcpPort)
-    asyncio.run(worm.start(debug=False))
+    asyncio.run(worm.start(debug=True))

@@ -62,7 +62,6 @@ class IRCConnection:
         
         await self.send_data(f'PRIVMSG {nickname} :{message}')
 
-
     async def listen(self):
         while True:
             await asyncio.sleep(0.1)

