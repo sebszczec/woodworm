@@ -9,7 +9,7 @@ import os
 import datetime
 
 class Woodworm:
-    def __init__(self, pathToFiles, ircNick, channel, domain, ircServer, ircServerPort):
+    def __init__(self, pathToFiles, ircNick, channel, domain, ircServer, ircServerPort, tcpPort):
         self.syslog = logger.Logger()
         self.botnetDB = botnet_database.BotnetDatabase()
         self.storageDirectory = pathToFiles
@@ -19,8 +19,9 @@ class Woodworm:
         self.ircServer = ircServer
         self.ircServerPort = ircServerPort
         self.my_ip = socket.gethostbyname(socket.gethostname())
+        self.tcpPort = tcpPort
         
-        self.myContext = context.Context(self.ircNick, self.my_ip, 3000)
+        self.myContext = context.Context(self.ircNick, self.my_ip, self.tcpPort)
         self.myContext.set_connected(True)
         
         self.irc_connection = irc_service.IRCConnection(self.ircServer, self.domain, self.ircServerPort, self.ircNick, self.channel)
@@ -130,5 +131,5 @@ class Woodworm:
     async def another_loop(self):
         while True:
             await asyncio.sleep(1)
-            self.syslog.log("I'm still alive!", level=logger.LogLevel.DEBUG) 
+            # self.syslog.log("I'm still alive!", level=logger.LogLevel.DEBUG) 
 

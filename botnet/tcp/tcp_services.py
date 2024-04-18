@@ -1,6 +1,8 @@
 import socket
 import threading
 import os
+import asyncio
+from log import logger
 
 class TCPServer:
     def __init__(self, host, port):
@@ -8,12 +10,13 @@ class TCPServer:
         self.port = port
         self.server_socket = None
         self.clients = []
+        self.syslog = logger.Logger()
 
     def start(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(5)
-        print(f"Server started on {self.host}:{self.port}")
+        self.syslog.log(f"TCP Server started on {self.host}:{self.port}")
 
         while True:
             client_socket, client_address = self.server_socket.accept()
@@ -55,7 +58,7 @@ class TCPServer:
                     break
                 file.write(data)
 
-        print(f"Received file '{filename}' from {client_socket.getpeername()[0]}")
+        self.syslog.log(f"Received file '{filename}' from {client_socket.getpeername()[0]}")
 
     def send_file(self, client_socket, filename):
         if not os.path.exists(filename):
@@ -66,11 +69,11 @@ class TCPServer:
             for data in file:
                 client_socket.send(data)
 
-        print(f"Sent file '{filename}' to {client_socket.getpeername()[0]}")
+        self.syslog.log(f"Sent file '{filename}' to {client_socket.getpeername()[0]}")
 
     def handle_command(self, client_socket, command):
         # Handle the command here
-        print(f"Received command '{command}' from {client_socket.getpeername()[0]}")
+        self.syslog.log(f"Received command '{command}' from {client_socket.getpeername()[0]}")
 
 
 class TCPClient:
@@ -82,7 +85,7 @@ class TCPClient:
     def connect(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_socket.connect((self.host, self.port))
-        print(f"Connected to {self.host}:{self.port}")
+        self.syslog.log(f"Connected to {self.host}:{self.port}")
 
     def send_command(self, command):
         self.client_socket.send(command.encode())
@@ -92,13 +95,13 @@ class TCPClient:
         with open(filename, "rb") as file:
             for data in file:
                 self.client_socket.send(data)
-        print(f"Sent file '{filename}' to {self.host}")
+        self.syslog.log(f"Sent file '{filename}' to {self.host}")
 
     def receive_file(self, filename):
         self.client_socket.send(f"RECEIVE_FILE {filename}".encode())
         response = self.client_socket.recv(1024).decode()
         if response == "FILE_NOT_FOUND":
-            print(f"File '{filename}' not found on the server")
+            self.syslog.log(f"File '{filename}' not found on the server")
             return
         with open(filename, "wb") as file:
             while True:
@@ -106,7 +109,7 @@ class TCPClient:
                 if not data:
                     break
                 file.write(data)
-        print(f"Received file '{filename}' from {self.host}")
+        self.syslog.log(f"Received file '{filename}' from {self.host}")
 
     def close(self):
         self.client_socket.close()

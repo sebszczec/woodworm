@@ -1,9 +1,14 @@
+from botnet.tcp import tcp_services
+
 class Context:
     def __init__(self, ircNick, ip, port):
         self.ircNick = ircNick
         self.ip = ip
         self.port = port
         self.connected = False
+
+        self.tcp_server = tcp_services.TCPServer(self.ip, self.port)
+        # self.tcp_server.start()
 
     def get_ircNick(self):
         return self.ircNick
@@ -20,4 +25,7 @@ class Context:
     def set_connected(self, connected):
         self.connected = connected
     
+    def get_tcp_server(self):
+        return self.tcp_server
+
 
