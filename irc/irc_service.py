@@ -8,6 +8,7 @@ class IRCConnection:
     onBroadcastRequested = event.Event()
     onSpreadDetected = event.Event()
     onSomeoneLeftChannel = event.Event()
+    onCommandLS = event.Event()
 
 
     def __init__(self, server, domain, port, nickname, channel):
@@ -153,7 +154,7 @@ class IRCConnection:
     
     async def handle_priv_command(self, nickname, command):
         if "LS" in command:
-            await self.send_query(nickname, "LS command obtained")
+            await self.onCommandLS.notify(self, nickname=nickname)
             return
 
 
