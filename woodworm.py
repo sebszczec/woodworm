@@ -9,6 +9,7 @@ import socket
 syslog = logger.Logger()
 myContext = None
 botnetDB = botnet_database.BotnetDatabase()
+storageDirectory = "/home/slaugh/Downloads"
 
 ircNick = "woodworm"
 

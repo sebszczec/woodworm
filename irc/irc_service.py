@@ -53,6 +53,13 @@ class IRCConnection:
         
         await self.send_data(f'PRIVMSG {self.channel} :{message}')
 
+    
+    async def send_query(self, nickname, message):
+        if self.is_connected() is False:
+            return
+        
+        await self.send_data(f'PRIVMSG {nickname} :{message}')
+
 
     async def listen(self):
         while True:
@@ -82,32 +89,26 @@ class IRCConnection:
             await self.handle_channel_commands(ircmsg)
 
             if "PRIVMSG" in ircmsg:
-                if await self.handle_priv_message(ircmsg):
-                    continue
+                await self.handle_priv_message(ircmsg)
 
-            self.logger.log(ircmsg)
+            self.logger.log(ircmsg, level=logger.LogLevel.DEBUG)
 
 
     async def handle_channel_commands(self, ircmsg):
         if ircmsg.startswith("PING :"):
             await self.handle_ping()
-            return True
 
         if "BROADCAST" in ircmsg:
             await self.handle_broadcast_request()
-            return True
 
         if "SPREAD" in ircmsg:
             await self.handle_spread_detected(ircmsg)
-            return True
 
         if "PART" in ircmsg:
             await self.handle_part(ircmsg)
-            return True
 
         if "JOIN" in ircmsg:
             await self.handle_join()
-            return True
 
         return False
 
@@ -144,9 +145,16 @@ class IRCConnection:
 
 
     async def handle_priv_message(self, ircmsg):
-        name = ircmsg.split('!', 1)[0][1:]
+        nickname = ircmsg.split('!', 1)[0][1:]
         message = ircmsg.split('PRIVMSG', 1)[1].split(':', 1)[1]
-        self.logger.log(f"Name: {name}, Message: {message}")
+        await self.handle_priv_command(nickname, message)
+        # self.logger.log(f"Name: {nickname}, Message: {message}")
+
+    
+    async def handle_priv_command(self, nickname, command):
+        if "LS" in command:
+            await self.send_query(nickname, "LS command obtained")
+            return
 
 
 
