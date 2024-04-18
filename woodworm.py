@@ -9,20 +9,21 @@ import os
 import datetime
 
 class Woodworm:
-    def __init__(self, pathToFiles, ircNick, channel, domain, ircServerPort):
+    def __init__(self, pathToFiles, ircNick, channel, domain, ircServer, ircServerPort):
         self.syslog = logger.Logger()
         self.botnetDB = botnet_database.BotnetDatabase()
         self.storageDirectory = pathToFiles
         self.ircNick = ircNick
         self.channel = channel 
         self.domain = domain
+        self.ircServer = ircServer
         self.ircServerPort = ircServerPort
         self.my_ip = socket.gethostbyname(socket.gethostname())
         
         self.myContext = context.Context(self.ircNick, self.my_ip, 3000)
         self.myContext.set_connected(True)
         
-        self.irc_connection = irc_service.IRCConnection(self.domain, self.domain, self.ircServerPort, self.ircNick, self.channel)
+        self.irc_connection = irc_service.IRCConnection(self.ircServer, self.domain, self.ircServerPort, self.ircNick, self.channel)
         
         self.irc_connection.onConnected.subscribe(self.irc_onConnected)
         self.irc_connection.onBroadcastRequested.subscribe(self.irc_onBroadcastRequested)
@@ -30,8 +31,6 @@ class Woodworm:
         self.irc_connection.onSomeoneLeftChannel.subscribe(self.irc_onSomeoneLeftChannel)
         self.irc_connection.onCommandLS.subscribe(self.irc_onCommandLS)
         self.irc_connection.onCommandSTAT.subscribe(self.irc_onCommandSTAT)
-
-        print("Woodworm initialized")
 
 
     async def start(self, debug):
