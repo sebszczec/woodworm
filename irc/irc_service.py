@@ -62,37 +62,42 @@ class IRCConnection:
         
         await self.send_data(f'PRIVMSG {nickname} :{message}')
 
+
+    async def listen_step(self):
+        await asyncio.sleep(0.1)
+            
+        self.IRC.settimeout(0.1)
+        try:
+            ircmsg = self.IRC.recv(self.MSG_LEN).decode("UTF-8")
+        except socket.timeout:
+            return
+
+        if len(ircmsg) == 0:
+            return
+
+        ircmsg = ircmsg.strip('\r\n')
+        
+        if ircmsg.startswith("PING :"):
+            await self.handle_ping()
+            return
+        
+        if self.isConnected is False and ("End of /MOTD command" in ircmsg or "376" in ircmsg):
+            self.isConnected = True
+            await self.onConnected.notify(self)
+            self.logger.log(ircmsg)
+            return
+
+        await self.handle_channel_commands(ircmsg)
+
+        if "PRIVMSG" in ircmsg:
+            await self.handle_priv_message(ircmsg)
+
+        self.logger.log(ircmsg, level=logger.LogLevel.DEBUG)
+
+
     async def listen(self):
         while True:
-            await asyncio.sleep(0.1)
-            
-            self.IRC.settimeout(0.1)
-            try:
-                ircmsg = self.IRC.recv(self.MSG_LEN).decode("UTF-8")
-            except socket.timeout:
-                continue
-
-            if len(ircmsg) == 0:
-                continue
-
-            ircmsg = ircmsg.strip('\r\n')
-            
-            if ircmsg.startswith("PING :"):
-                await self.handle_ping()
-                continue
-            
-            if self.isConnected is False and ("End of /MOTD command" in ircmsg or "376" in ircmsg):
-                self.isConnected = True
-                await self.onConnected.notify(self)
-                self.logger.log(ircmsg)
-                continue
-
-            await self.handle_channel_commands(ircmsg)
-
-            if "PRIVMSG" in ircmsg:
-                await self.handle_priv_message(ircmsg)
-
-            self.logger.log(ircmsg, level=logger.LogLevel.DEBUG)
+            await self.listen_step()
 
 
     async def handle_channel_commands(self, ircmsg):
@@ -105,7 +110,7 @@ class IRCConnection:
         if "SPREAD" in ircmsg:
             await self.handle_spread_detected(ircmsg)
 
-        if "PART" in ircmsg:
+        if "PART" in ircmsg or "QUIT" in ircmsg:
             await self.handle_part(ircmsg)
 
         if "JOIN" in ircmsg:
@@ -126,7 +131,8 @@ class IRCConnection:
     async def handle_spread_detected(self, ircmsg):
         try:
             ip = ircmsg.split("ip:")[1].split(" ")[0]
-            port = ircmsg.split("port:")[1]
+            port = ircmsg.split("port:")[1].split()[0].strip('\r\n')
+
             ircNick = ircmsg.split('!', 1)[0][1:]
         except:
             self.logger.log("Error parsing SPREAD message", level=logger.LogLevel.ERROR)

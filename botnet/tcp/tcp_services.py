@@ -18,16 +18,21 @@ class TCPServer:
         self.server_socket.listen(5)
         self.syslog.log(f"TCP Server started on {self.host}:{self.port}")
 
+    async def listen_step(self):
+        await asyncio.sleep(0.1)
+        self.server_socket.settimeout(0.1)
+        try:
+            client_socket, client_address = self.server_socket.accept()
+            self.syslog.log(f"New TCP connection from {client_address[0]}:{client_address[1]}")
+            client_thread = threading.Thread(target=self.handle_client, args=(client_socket,))
+            client_thread.start()
+        except socket.timeout:
+            return
+
+    async def listen(self):
+        self.syslog.log("Listening for incoming TCP connections")
         while True:
-            await asyncio.sleep(0.1)
-            self.server_socket.settimeout(0.1)
-            try:
-                client_socket, client_address = self.server_socket.accept()
-                print(f"New connection from {client_address[0]}:{client_address[1]}")
-                client_thread = threading.Thread(target=self.handle_client, args=(client_socket,))
-                client_thread.start()
-            except socket.timeout:
-                continue
+            await self.listen_step()
 
     def handle_client(self, client_socket):
         self.clients.append(client_socket)
@@ -93,12 +98,12 @@ class TCPClient:
         self.client_socket.settimeout(1)
         try:
             self.client_socket.connect((self.host, int(self.port)))
-            self.syslog.log(f"Connected to {self.host}:{self.port}")
+            self.syslog.log(f"TCP Connected to {self.host}:{self.port}")
         except ConnectionRefusedError:
-            self.syslog.log(f"Connection to {self.host}:{self.port} refused")
+            self.syslog.log(f"TCP Connection to {self.host}:{self.port} refused")
             return False
         except socket.timeout:
-            self.syslog.log(f"Connection to {self.host}:{self.port} timed out")
+            self.syslog.log(f"TCP Connection to {self.host}:{self.port} timed out")
             return False
         
         return True

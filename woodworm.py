@@ -39,14 +39,16 @@ class Woodworm:
     async def start(self, debug):
         await self.irc_connection.connect()
         await self.irc_connection.register_user()
+        await self.tcp_server.start()
     
         if not debug:
             async with asyncio.TaskGroup() as tg:
                 tg.create_task(self.irc_connection.listen())
                 tg.create_task(self.tcp_server.start())
         else:
-            await self.irc_connection.listen()
-            await self.tcp_server.start()
+            while True:
+                await self.irc_connection.listen_step()
+                await self.tcp_server.listen_step()
 
 
     async def irc_onConnected(self, *args, **kwargs):
