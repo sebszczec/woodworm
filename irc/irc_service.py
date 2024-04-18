@@ -9,6 +9,7 @@ class IRCConnection:
     onSpreadDetected = event.Event()
     onSomeoneLeftChannel = event.Event()
     onCommandLS = event.Event()
+    onCommandSTAT = event.Event()
 
 
     def __init__(self, server, domain, port, nickname, channel):
@@ -155,6 +156,15 @@ class IRCConnection:
     async def handle_priv_command(self, nickname, command):
         if "LS" in command:
             await self.onCommandLS.notify(self, nickname=nickname)
+            return
+        
+        if "STAT" in command:
+            try:
+                filename = command.split('STAT', 1)[1].split(' ', 1)[1]
+            except:
+                self.logger.log("Error parsing STAT command", level=logger.LogLevel.ERROR)
+                return
+            await self.onCommandSTAT.notify(self, filename=filename, nickname=nickname)
             return
 
 

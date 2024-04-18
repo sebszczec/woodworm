@@ -6,6 +6,7 @@ from context import context
 from botnet import botnet_database
 import socket
 import os
+import datetime
 
 class Woodworm:
     def __init__(self, pathToFiles, ircNick, channel, domain, ircServerPort):
@@ -28,19 +29,21 @@ class Woodworm:
         self.irc_connection.onSpreadDetected.subscribe(self.irc_onSpreadDetected)
         self.irc_connection.onSomeoneLeftChannel.subscribe(self.irc_onSomeoneLeftChannel)
         self.irc_connection.onCommandLS.subscribe(self.irc_onCommandLS)
+        self.irc_connection.onCommandSTAT.subscribe(self.irc_onCommandSTAT)
 
         print("Woodworm initialized")
 
 
-    async def start(self):
+    async def start(self, debug):
         await self.irc_connection.connect()
         await self.irc_connection.register_user()
     
-        async with asyncio.TaskGroup() as tg:
-            tg.create_task(self.irc_connection.listen())
-            tg.create_task(self.another_loop())
-
-        # await irc_connection.listen()
+        if not debug:
+            async with asyncio.TaskGroup() as tg:
+                tg.create_task(self.irc_connection.listen())
+                tg.create_task(self.another_loop())
+        else:
+            await self.irc_connection.listen()
 
 
     async def irc_onConnected(self, *args, **kwargs):
@@ -82,6 +85,23 @@ class Woodworm:
         files = await self.list_files()
         await irc_connection.send_query(nickname, f"FILES {files}")
 
+    
+    async def irc_onCommandSTAT(self, *args, **kwargs):
+        irc_connection = args[0]
+        filename = kwargs.get('filename')
+        nickname = kwargs.get('nickname')
+        file_info = await self.get_file_info(filename)
+
+        if file_info is None:
+            await irc_connection.send_query(nickname, f"No such file: {filename}")
+            return
+
+        modified_time = datetime.datetime.fromtimestamp(file_info['modified']).strftime('%Y-%m-%d %H:%M:%S')
+        file_info['modified'] = modified_time
+        file_size_mb = file_info['size'] / (1024 * 1024)
+        file_info['size'] = f"{round(file_size_mb, 2)} MB"
+        await irc_connection.send_query(nickname, f"FILE_INFO {file_info}")
+
 
     async def list_files(self):
         files = []
@@ -91,6 +111,22 @@ class Woodworm:
             self.syslog.log(f"Error listing files: {str(e)}", level=logger.LogLevel.ERROR)
         return files
 
+
+    async def get_file_info(self, filename):
+        file_path = os.path.join(self.storageDirectory, filename)
+        try:
+            file_size = os.path.getsize(file_path)
+            file_modified = os.path.getmtime(file_path)
+            file_info = {
+                'filename': filename,
+                'size': file_size,
+                'modified': file_modified
+            }
+            return file_info
+        except Exception as e:
+            self.syslog.log(f"Error getting file info: {str(e)}", level=logger.LogLevel.ERROR)
+            return None
+        
 
     async def another_loop(self):
         while True:
