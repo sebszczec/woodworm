@@ -4,12 +4,7 @@ from log import logger
 from tools import event
 
 class IRCConnection:
-    onConnected = event.Event()
-    onBroadcastRequested = event.Event()
-    onSpreadDetected = event.Event()
-    onSomeoneLeftChannel = event.Event()
-    onCommandLS = event.Event()
-    onCommandSTAT = event.Event()
+    
 
 
     def __init__(self, server, domain, port, nickname, channel):
@@ -22,6 +17,12 @@ class IRCConnection:
         self.logger = logger.Logger()
         self.MSG_LEN = 2048
         self.isConnected = False
+        self.onConnected = event.Event()
+        self.onBroadcastRequested = event.Event()
+        self.onSpreadDetected = event.Event()
+        self.onSomeoneLeftChannel = event.Event()
+        self.onCommandLS = event.Event()
+        self.onCommandSTAT = event.Event()
 
 
     async def connect(self):

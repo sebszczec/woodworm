@@ -37,7 +37,6 @@ class TCPConnection:
                 self.handle_command(self.socket, data)
         
         self.socket.close()
-        
         asyncio.run(self.onConnectionClosed.notify(self))
 
     def send_command(self, command):
@@ -68,6 +67,7 @@ class TCPConnection:
 
     def close(self):
         self.socket.close()
+
 
 class TCPServer:
     def __init__(self, host, port):
