@@ -86,11 +86,44 @@ class TCPServer:
         self.syslog.log(f"Received command '{command}' from {client_socket.getpeername()[0]}")
 
 
+class TCPConnection:
+    def __init__(self, socket) -> None:
+        self.socket = socket
+
+    def send_command(self, command):
+        self.socket.send(command.encode())
+
+    def send_file(self, filename):
+        self.socket.send(f"SEND_FILE {filename}".encode())
+        with open(filename, "rb") as file:
+            for data in file:
+                self.socket.send(data)
+        self.syslog.log(f"Sent file '{filename}' to {self.host}")
+
+    def receive_file(self, filename):
+        self.csocket.send(f"RECEIVE_FILE {filename}".encode())
+        response = self.socket.recv(1024).decode()
+        if response == "FILE_NOT_FOUND":
+            self.syslog.log(f"File '{filename}' not found on the server")
+            return
+        with open(filename, "wb") as file:
+            while True:
+                data = self.socket.recv(1024)
+                if not data:
+                    break
+                file.write(data)
+        self.syslog.log(f"Received file '{filename}' from {self.host}")
+
+    def close(self):
+        self.socket.close()
+
+
 class TCPClient:
     def __init__(self, host, port):
         self.host = host
         self.port = port
         self.client_socket = None
+        self.tcp_connection = None
         self.syslog = logger.Logger()
 
     def connect(self):
@@ -106,31 +139,17 @@ class TCPClient:
             self.syslog.log(f"TCP Connection to {self.host}:{self.port} timed out")
             return False
         
+        self.tcp_connection = TCPConnection(self.client_socket)
         return True
 
     def send_command(self, command):
-        self.client_socket.send(command.encode())
+        self.tcp_connection.send_command(command)
 
     def send_file(self, filename):
-        self.client_socket.send(f"SEND_FILE {filename}".encode())
-        with open(filename, "rb") as file:
-            for data in file:
-                self.client_socket.send(data)
-        self.syslog.log(f"Sent file '{filename}' to {self.host}")
+        self.tcp_connection.send(filename)
 
     def receive_file(self, filename):
-        self.client_socket.send(f"RECEIVE_FILE {filename}".encode())
-        response = self.client_socket.recv(1024).decode()
-        if response == "FILE_NOT_FOUND":
-            self.syslog.log(f"File '{filename}' not found on the server")
-            return
-        with open(filename, "wb") as file:
-            while True:
-                data = self.client_socket.recv(1024)
-                if not data:
-                    break
-                file.write(data)
-        self.syslog.log(f"Received file '{filename}' from {self.host}")
+        self.tcp_connection.receive_file(filename)
 
     def close(self):
-        self.client_socket.close()
+        self.tcp_connection.close()
