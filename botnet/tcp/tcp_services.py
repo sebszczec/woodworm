@@ -11,6 +11,7 @@ class TCPConnection:
         self.socket = socket
         self.socketInfo = self.socket.getpeername()
         self.onConnectionClosed = event.Event()
+        self.onIdentifyCommandReceived = event.Event()
 
     async def start(self):
         connection_thread = asyncio.to_thread(self.handle_data)
@@ -45,6 +46,8 @@ class TCPConnection:
     def handle_command(self, command):
         # Handle the command here
         self.syslog.log(f"Received TCP command '{command}' from {self.socket.getpeername()[0]}")
+        nick = command.split()[1]
+        asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick))
 
     def send_file(self, filename):
         self.socket.send(f"FILE {filename}".encode())
@@ -76,6 +79,7 @@ class TCPServer:
         self.server_socket = None
         self.clients = []
         self.syslog = logger.Logger()
+        self.onConnectionRegistered = event.Event()
 
     async def start(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -90,7 +94,8 @@ class TCPServer:
             client_socket, client_address = self.server_socket.accept()
             self.syslog.log(f"New TCP connection from {client_address[0]}:{client_address[1]}")
             tcp_connection = TCPConnection(client_socket)
-            tcp_connection.onConnectionClosed.subscribe(self.onConnectionClosed)
+            tcp_connection.onConnectionClosed.subscribe(self.tcpConnection_onConnectionClosed)
+            tcp_connection.onIdentifyCommandReceived.subscribe(self.tpcConnection_onIdentifyCommandReceived)
             self.clients.append(tcp_connection)
             await tcp_connection.start()
         except socket.timeout:
@@ -101,11 +106,16 @@ class TCPServer:
         while True:
             await self.listen_step(delay)
 
-    async def onConnectionClosed(self, *args, **kwargs):
+    async def tcpConnection_onConnectionClosed(self, *args, **kwargs):
         connection = args[0]
         info = connection.get_socket_info()
         self.syslog.log(f"TCP connection {info[0]}:{info[1]} closed")
         self.clients.remove(connection)
+
+    async def tpcConnection_onIdentifyCommandReceived(self, *args, **kwargs):
+        connection = args[0]
+        sender = kwargs.get("sender")
+        await self.onConnectionRegistered.notify(self, connection=connection, sender=sender)
     
 
 class TCPClient:

