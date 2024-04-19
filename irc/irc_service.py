@@ -81,13 +81,13 @@ class IRCConnection:
         for ircmsg in buffer:
             if ircmsg.startswith("PING :"):
                 await self.handle_ping()
-                return
+                continue
             
             if self.isConnected is False and ("End of /MOTD command" in ircmsg or "376" in ircmsg):
                 self.isConnected = True
                 await self.onConnected.notify(self)
                 self.logger.log(ircmsg)
-                return
+                continue
 
             await self.handle_channel_commands(ircmsg)
 
