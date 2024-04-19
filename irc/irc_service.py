@@ -68,31 +68,33 @@ class IRCConnection:
             
         self.IRC.settimeout(0.1)
         try:
-            ircmsg = self.IRC.recv(self.MSG_LEN).decode("UTF-8")
+            received = self.IRC.recv(self.MSG_LEN).decode("UTF-8")
         except socket.timeout:
             return
 
-        if len(ircmsg) == 0:
+        if len(received) == 0:
             return
 
-        ircmsg = ircmsg.strip('\r\n')
+        received = received.strip('\r\n')
+        buffer = received.split("\r\n")
         
-        if ircmsg.startswith("PING :"):
-            await self.handle_ping()
-            return
-        
-        if self.isConnected is False and ("End of /MOTD command" in ircmsg or "376" in ircmsg):
-            self.isConnected = True
-            await self.onConnected.notify(self)
-            self.logger.log(ircmsg)
-            return
+        for ircmsg in buffer:
+            if ircmsg.startswith("PING :"):
+                await self.handle_ping()
+                return
+            
+            if self.isConnected is False and ("End of /MOTD command" in ircmsg or "376" in ircmsg):
+                self.isConnected = True
+                await self.onConnected.notify(self)
+                self.logger.log(ircmsg)
+                return
 
-        await self.handle_channel_commands(ircmsg)
+            await self.handle_channel_commands(ircmsg)
 
-        if "PRIVMSG" in ircmsg:
-            await self.handle_priv_message(ircmsg)
+            if "PRIVMSG" in ircmsg:
+                await self.handle_priv_message(ircmsg)
 
-        self.logger.log(ircmsg, level=logger.LogLevel.DEBUG)
+            self.logger.log(ircmsg, level=logger.LogLevel.DEBUG)
 
 
     async def listen(self):
@@ -129,11 +131,16 @@ class IRCConnection:
 
 
     async def handle_spread_detected(self, ircmsg):
+        # self.logger.log(f"{ircmsg}", level=logger.LogLevel.DEBUG)
         try:
             ip = ircmsg.split("ip:")[1].split(" ")[0]
             port = ircmsg.split("port:")[1].split()[0].strip('\r\n')
+            
+            # ircmsg =":slaugh!slaugh@89.64.9.196 PRIVMSG #vorest :BROADCAST\r\n:woodworm1!woodworm1@54.38.53.132 PRIVMSG #vorest :SPREAD ip:54.38.53.132 port:3000"
 
             ircNick = ircmsg.split('!', 1)[0][1:]
+            if "slaugh" in ircNick:
+                self.logger.log(f"{ircmsg}", level=logger.LogLevel.DEBUG)
         except:
             self.logger.log("Error parsing SPREAD message", level=logger.LogLevel.ERROR)
             return
