@@ -6,11 +6,11 @@ from log import logger
 from tools import event
 
 class TCPConnection:
-    onConnectionClosed = event.Event()
-
     def __init__(self, socket) -> None:
         self.syslog = logger.Logger()
         self.socket = socket
+        self.socketInfo = self.socket.getpeername()
+        self.onConnectionClosed = event.Event()
 
     async def start(self):
         connection_thread = asyncio.to_thread(self.handle_data)
@@ -36,11 +36,9 @@ class TCPConnection:
                 # Handle other commands
                 self.handle_command(self.socket, data)
         
-        info = self.socket.getpeername()
-        self.syslog.log(f"TCP Connection {info[0]}:{info[1]} closed", level=logger.LogLevel.DEBUG)
         self.socket.close()
         
-        # await self.onConnectionClosed.notify(self)
+        asyncio.run(self.onConnectionClosed.notify(self))
 
     def send_command(self, command):
         self.socket.send(command.encode())
@@ -64,6 +62,9 @@ class TCPConnection:
                     break
                 file.write(data)
         self.syslog.log(f"Received file '{filename}' from {self.host}")
+
+    def get_socket_info(self):
+        return self.socketInfo
 
     def close(self):
         self.socket.close()
@@ -90,7 +91,7 @@ class TCPServer:
             self.syslog.log(f"New TCP connection from {client_address[0]}:{client_address[1]}")
             tcp_connection = TCPConnection(client_socket)
             tcp_connection.onConnectionClosed.subscribe(self.onConnectionClosed)
-            self.clients.append(tcp_connection) 
+            self.clients.append(tcp_connection)
             await tcp_connection.start()
         except socket.timeout:
             return
@@ -100,8 +101,9 @@ class TCPServer:
         while True:
             await self.listen_step(0)
 
-    async def onConnectionClosed(self, connection):
-        info = self.socket.getpeername()
+    async def onConnectionClosed(self, *args, **kwargs):
+        connection = args[0]
+        info = connection.get_socket_info()
         self.syslog.log(f"TCP connection {info[0]}:{info[1]} closed")
         self.clients.remove(connection)
     
