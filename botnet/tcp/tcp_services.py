@@ -3,15 +3,18 @@ import threading
 import os
 import asyncio
 from log import logger
-
+from tools import event
 
 class TCPConnection:
+    onConnectionClosed = event.Event()
+
     def __init__(self, socket) -> None:
+        self.syslog = logger.Logger()
         self.socket = socket
 
-    def start(self):
-        connection_thread = threading.Thread(target=self.handle_data)
-        connection_thread.start()
+    async def start(self):
+        connection_thread = asyncio.to_thread(self.handle_data)
+        task = asyncio.create_task(connection_thread)
 
     def handle_data(self):
         while True:
@@ -23,7 +26,7 @@ class TCPConnection:
                 break
 
             if not data:
-                continue
+                break
 
             # Handle received data
             if data.startswith("FILE"):
@@ -32,9 +35,11 @@ class TCPConnection:
             else:
                 # Handle other commands
                 self.handle_command(self.socket, data)
-
+        info = self.socket.getpeername()
+        self.syslog.log(f"TCP Connection {info[0]}:{info[1]} closed", level=logger.LogLevel.DEBUG)
         self.socket.close()
-        # self.clients.remove(client_socket) # place to raise an event
+        
+        # await self.onConnectionClosed.notify(self)
 
     def send_command(self, command):
         self.socket.send(command.encode())
@@ -76,22 +81,27 @@ class TCPServer:
         self.server_socket.listen(5)
         self.syslog.log(f"TCP Server started on {self.host}:{self.port}")
 
-    async def listen_step(self):
-        await asyncio.sleep(0.1)
+    async def listen_step(self, delay):
+        await asyncio.sleep(delay)
         self.server_socket.settimeout(0.1)
         try:
             client_socket, client_address = self.server_socket.accept()
             self.syslog.log(f"New TCP connection from {client_address[0]}:{client_address[1]}")
             tcp_connection = TCPConnection(client_socket)
+            tcp_connection.onConnectionClosed.subscribe(self.onConnectionClosed)
             self.clients.append(tcp_connection) 
-            tcp_connection.start()
+            await tcp_connection.start()
         except socket.timeout:
             return
 
     async def listen(self):
         self.syslog.log("Listening for incoming TCP connections")
         while True:
-            await self.listen_step()
+            await self.listen_step(0)
+
+    async def onConnectionClosed(self, connection):
+        self.syslog.log(f"TCP connection from {connection.socket.getpeername()[0]} closed")
+        self.clients.remove(connection)
     
 
 class TCPClient:
@@ -102,7 +112,7 @@ class TCPClient:
         self.tcp_connection = None
         self.syslog = logger.Logger()
 
-    def connect(self):
+    async def connect(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_socket.settimeout(1)
         try:
@@ -116,7 +126,7 @@ class TCPClient:
             return False
         
         self.tcp_connection = TCPConnection(self.client_socket)
-        self.tcp_connection.start()
+        await self.tcp_connection.start()
         return True
 
     def get_tcp_connection(self):

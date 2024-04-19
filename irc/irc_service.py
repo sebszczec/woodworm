@@ -63,8 +63,8 @@ class IRCConnection:
         await self.send_data(f'PRIVMSG {nickname} :{message}')
 
 
-    async def listen_step(self):
-        await asyncio.sleep(0.1)
+    async def listen_step(self, delay):
+        await asyncio.sleep(delay)
             
         self.IRC.settimeout(0.1)
         try:
@@ -99,7 +99,7 @@ class IRCConnection:
 
     async def listen(self):
         while True:
-            await self.listen_step()
+            await self.listen_step(0)
 
 
     async def handle_channel_commands(self, ircmsg):
