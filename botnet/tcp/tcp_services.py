@@ -82,8 +82,9 @@ class TCPServer:
         try:
             client_socket, client_address = self.server_socket.accept()
             self.syslog.log(f"New TCP connection from {client_address[0]}:{client_address[1]}")
-            client_thread = threading.Thread(target=self.handle_client, args=(client_socket,))
-            client_thread.start()
+            tcp_connection = TCPConnection(client_socket)
+            self.clients.append(tcp_connection) 
+            tcp_connection.start()
         except socket.timeout:
             return
 
@@ -91,53 +92,7 @@ class TCPServer:
         self.syslog.log("Listening for incoming TCP connections")
         while True:
             await self.listen_step()
-
-    def handle_client(self, client_socket):
-        self.clients.append(client_socket)
-
-        while True:
-            try:
-                data = client_socket.recv(1024).decode()
-                if not data:
-                    break
-
-                # Handle received data
-                if data.startswith("FILE"):
-                    filename = data.split()[1]
-                    self.receive_file(client_socket, filename)
-                else:
-                    # Handle other commands
-                    self.handle_command(client_socket, data)
-
-            except ConnectionResetError:
-                break
-
-        client_socket.close()
-        self.clients.remove(client_socket)
-
-    def receive_file(self, client_socket, filename):
-        with open(filename, "wb") as file:
-            while True:
-                data = client_socket.recv(1024)
-                if not data:
-                    break
-                file.write(data)
-
-        self.syslog.log(f"Received file '{filename}' from {client_socket.getpeername()[0]}")
-
-    def send_file(self, client_socket, filename):
-        if not os.path.exists(filename):
-            client_socket.send("FILE_NOT_FOUND".encode())
-            return
-
-        with open(filename, "rb") as file:
-            for data in file:
-                client_socket.send(data)
-
-        self.syslog.log(f"Sent file '{filename}' to {client_socket.getpeername()[0]}")
-
     
-
 
 class TCPClient:
     def __init__(self, host, port):
