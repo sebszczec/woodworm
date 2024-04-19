@@ -4,6 +4,64 @@ import os
 import asyncio
 from log import logger
 
+
+class TCPConnection:
+    def __init__(self, socket) -> None:
+        self.socket = socket
+
+    def start(self):
+        connection_thread = threading.Thread(target=self.handle_data)
+        connection_thread.start()
+
+    def handle_data(self):
+        while True:
+            try:
+                data = self.socket.recv(1024).decode()
+            except socket.timeout:
+                continue
+            except ConnectionResetError:
+                break
+
+            if not data:
+                continue
+
+            # Handle received data
+            if data.startswith("FILE"):
+                filename = data.split()[1]
+                self.receive_file(self.socket, filename)
+            else:
+                # Handle other commands
+                self.handle_command(self.socket, data)
+
+        self.socket.close()
+        # self.clients.remove(client_socket) # place to raise an event
+
+    def send_command(self, command):
+        self.socket.send(command.encode())
+
+    def handle_command(self, command):
+        # Handle the command here
+        self.syslog.log(f"Received command '{command}' from {self.socket.getpeername()[0]}")
+
+    def send_file(self, filename):
+        self.socket.send(f"FILE {filename}".encode())
+        with open(filename, "rb") as file:
+            for data in file:
+                self.socket.send(data)
+        self.syslog.log(f"Sent file '{filename}' to {self.host}")
+
+    def receive_file(self, filename):
+        with open(filename, "wb") as file:
+            while True:
+                data = self.socket.recv(1024)
+                if not data:
+                    break
+                file.write(data)
+        self.syslog.log(f"Received file '{filename}' from {self.host}")
+
+    def close(self):
+        self.socket.close()
+
 class TCPServer:
     def __init__(self, host, port):
         self.host = host
@@ -44,12 +102,9 @@ class TCPServer:
                     break
 
                 # Handle received data
-                if data.startswith("SEND_FILE"):
+                if data.startswith("FILE"):
                     filename = data.split()[1]
                     self.receive_file(client_socket, filename)
-                elif data.startswith("RECEIVE_FILE"):
-                    filename = data.split()[1]
-                    self.send_file(client_socket, filename)
                 else:
                     # Handle other commands
                     self.handle_command(client_socket, data)
@@ -81,41 +136,7 @@ class TCPServer:
 
         self.syslog.log(f"Sent file '{filename}' to {client_socket.getpeername()[0]}")
 
-    def handle_command(self, client_socket, command):
-        # Handle the command here
-        self.syslog.log(f"Received command '{command}' from {client_socket.getpeername()[0]}")
-
-
-class TCPConnection:
-    def __init__(self, socket) -> None:
-        self.socket = socket
-
-    def send_command(self, command):
-        self.socket.send(command.encode())
-
-    def send_file(self, filename):
-        self.socket.send(f"SEND_FILE {filename}".encode())
-        with open(filename, "rb") as file:
-            for data in file:
-                self.socket.send(data)
-        self.syslog.log(f"Sent file '{filename}' to {self.host}")
-
-    def receive_file(self, filename):
-        self.csocket.send(f"RECEIVE_FILE {filename}".encode())
-        response = self.socket.recv(1024).decode()
-        if response == "FILE_NOT_FOUND":
-            self.syslog.log(f"File '{filename}' not found on the server")
-            return
-        with open(filename, "wb") as file:
-            while True:
-                data = self.socket.recv(1024)
-                if not data:
-                    break
-                file.write(data)
-        self.syslog.log(f"Received file '{filename}' from {self.host}")
-
-    def close(self):
-        self.socket.close()
+    
 
 
 class TCPClient:
@@ -140,16 +161,8 @@ class TCPClient:
             return False
         
         self.tcp_connection = TCPConnection(self.client_socket)
+        self.tcp_connection.start()
         return True
 
-    def send_command(self, command):
-        self.tcp_connection.send_command(command)
-
-    def send_file(self, filename):
-        self.tcp_connection.send(filename)
-
-    def receive_file(self, filename):
-        self.tcp_connection.receive_file(filename)
-
-    def close(self):
-        self.tcp_connection.close()
+    def get_tcp_connection(self):
+        return self.tcp_connection
