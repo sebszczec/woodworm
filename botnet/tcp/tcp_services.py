@@ -34,7 +34,7 @@ class TCPConnection:
                 self.receive_file(self.socket, filename)
             else:
                 # Handle other commands
-                self.handle_command(self.socket, data)
+                self.handle_command(data)
         
         self.socket.close()
         asyncio.run(self.onConnectionClosed.notify(self))
@@ -44,7 +44,7 @@ class TCPConnection:
 
     def handle_command(self, command):
         # Handle the command here
-        self.syslog.log(f"Received command '{command}' from {self.socket.getpeername()[0]}")
+        self.syslog.log(f"Received TCP command '{command}' from {self.socket.getpeername()[0]}")
 
     def send_file(self, filename):
         self.socket.send(f"FILE {filename}".encode())
@@ -113,7 +113,6 @@ class TCPClient:
         self.host = host
         self.port = port
         self.client_socket = None
-        self.tcp_connection = None
         self.syslog = logger.Logger()
 
     async def connect(self):
@@ -129,9 +128,6 @@ class TCPClient:
             self.syslog.log(f"TCP Connection to {self.host}:{self.port} timed out")
             return False
         
-        self.tcp_connection = TCPConnection(self.client_socket)
-        await self.tcp_connection.start()
-        return True
-
-    def get_tcp_connection(self):
-        return self.tcp_connection
+        tcp_connection = TCPConnection(self.client_socket)
+        await tcp_connection.start()
+        return tcp_connection
