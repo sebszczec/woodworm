@@ -23,6 +23,7 @@ class IRCConnection:
         self.onSomeoneLeftChannel = event.Event()
         self.onCommandLS = event.Event()
         self.onCommandSTAT = event.Event()
+        self.onCommandSEND = event.Event()
 
 
     async def connect(self):
@@ -179,6 +180,21 @@ class IRCConnection:
                 return
             await self.onCommandSTAT.notify(self, filename=filename, nickname=nickname)
             return
+        
+        if "SEND" in command:
+            try:
+                filename = command.split('SEND', 1)[1].split(' ', 2)[1]
+                receiver = command.split('SEND', 1)[1].split(' ', 2)[2]
+            except:
+                self.logger.log("Error parsing SEND command", level=logger.LogLevel.ERROR)
+                return
+            
+            self.logger.log(f"SEND command received: {filename} to {receiver}")
+            await self.onCommandSEND.notify(self, filename=filename, receiver=receiver)
+            return
+            
+
+
 
 
 
