@@ -96,10 +96,10 @@ class TCPServer:
         except socket.timeout:
             return
 
-    async def listen(self):
+    async def listen(self, delay):
         self.syslog.log("Listening for incoming TCP connections")
         while True:
-            await self.listen_step(0)
+            await self.listen_step(delay)
 
     async def onConnectionClosed(self, *args, **kwargs):
         connection = args[0]

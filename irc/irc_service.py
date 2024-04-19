@@ -98,9 +98,9 @@ class IRCConnection:
             self.logger.log(ircmsg, level=logger.LogLevel.DEBUG)
 
 
-    async def listen(self):
+    async def listen(self, delay):
         while True:
-            await self.listen_step(0)
+            await self.listen_step(delay)
 
 
     async def handle_channel_commands(self, ircmsg):

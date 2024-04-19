@@ -43,8 +43,8 @@ class Woodworm:
     
         if not debug:
             async with asyncio.TaskGroup() as tg:
-                tg.create_task(self.irc_connection.listen())
-                tg.create_task(self.tcp_server.start())
+                tg.create_task(self.irc_connection.listen(0.0))
+                tg.create_task(self.tcp_server.listen(0.0))
         else:
             while True:
                 await self.irc_connection.listen_step(0.1)
