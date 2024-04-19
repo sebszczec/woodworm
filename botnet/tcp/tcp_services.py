@@ -35,6 +35,7 @@ class TCPConnection:
             else:
                 # Handle other commands
                 self.handle_command(self.socket, data)
+        
         info = self.socket.getpeername()
         self.syslog.log(f"TCP Connection {info[0]}:{info[1]} closed", level=logger.LogLevel.DEBUG)
         self.socket.close()
@@ -100,7 +101,8 @@ class TCPServer:
             await self.listen_step(0)
 
     async def onConnectionClosed(self, connection):
-        self.syslog.log(f"TCP connection from {connection.socket.getpeername()[0]} closed")
+        info = self.socket.getpeername()
+        self.syslog.log(f"TCP connection {info[0]}:{info[1]} closed")
         self.clients.remove(connection)
     
 
