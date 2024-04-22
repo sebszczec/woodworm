@@ -31,10 +31,14 @@ class TCPConnection:
 
             # Handle received data
             if data.startswith("FILE"):
+                self.syslog.log(f"Proceeding FILE request", level=logger.LogLevel.DEBUG)
                 temp = data.split()[1].split("__")
                 filename = temp[0]
                 filesize = temp[1]
-                self.receive_file(self.socket, filename, filesize)
+
+                self.send_command("READY TO RECEIVE")
+
+                self.receive_file(filename, filesize)
             else:
                 # Handle other commands
                 self.handle_command(data)
@@ -52,18 +56,28 @@ class TCPConnection:
         asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick))
 
     def send_file(self, filename):
-        self.syslog.log(f"Sending file '{filename}'")
+        self.syslog.log(f"Sending file '{filename}'", level=logger.LogLevel.DEBUG)
         filesize = os.path.getsize(filename)
-        self.socket.send(f"FILE {filename}__{filesize}".encode())
+        name = os.path.basename(filename)
+        self.send_command(f"FILE {name}__{filesize}")
+
+        try:
+            data = self.socket.recv(1024).decode()
+            if data.startswith("READY TO RECEIVE"):
+                self.syslog.log(f"Received READY TO RECEIVE", level=logger.LogLevel.DEBUG)
+        except socket.timeout:
+            pass
+        
         with open(filename, "rb") as file:
             for data in file:
                 self.socket.send(data)
-        self.syslog.log(f"Sent file '{filename}' to {self.host}")
+        self.syslog.log(f"Sent file '{filename}'")
 
     def receive_file(self, filename, filesize):
-        self.syslog.log(f"Receiving file '{filename}'")
+        self.syslog.log(f"Receiving file '{filename}'", level=logger.LogLevel.DEBUG)
+        file = os.path.join("/home/slaugh/Downloads/d2", filename)
         size = 0
-        with open(filename, "wb") as file:
+        with open(file, "wb") as file:
             while True:
                 data = self.socket.recv(1024)
                 if not data:
@@ -71,10 +85,10 @@ class TCPConnection:
                 file.write(data)
 
                 size = size + len(data)
-                if size >= filesize:
+                if size >= int(filesize):
                     break
 
-        self.syslog.log(f"Received file '{filename}' from {self.host}")
+        self.syslog.log(f"Received file '{filename}'")
 
     def get_socket_info(self):
         return self.socketInfo
@@ -103,6 +117,7 @@ class TCPServer:
         self.server_socket.settimeout(0.1)
         try:
             client_socket, client_address = self.server_socket.accept()
+            # client_socket.settimeout(1)
             self.syslog.log(f"New TCP connection from {client_address[0]}:{client_address[1]}")
             tcp_connection = TCPConnection(client_socket)
             tcp_connection.onConnectionClosed.subscribe(self.tcpConnection_onConnectionClosed)
@@ -138,7 +153,7 @@ class TCPClient:
 
     async def connect(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client_socket.settimeout(1)
+        # self.client_socket.settimeout(1)
         try:
             self.client_socket.connect((self.host, int(self.port)))
             self.syslog.log(f"TCP Connected to {self.host}:{self.port}")

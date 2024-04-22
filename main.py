@@ -20,3 +20,4 @@ if __name__ == "__main__":
 
     worm = woodworm.Woodworm(pathToFiles, ircNick, channel, domain, ircServer, ircServerPort, tcpPort)
     asyncio.run(worm.start(debug=True))
+    
