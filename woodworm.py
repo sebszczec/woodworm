@@ -131,9 +131,6 @@ class Woodworm:
         if bot is None:
             self.syslog.log(f"Bot not found: nick: {receiver}", level=logger.LogLevel.ERROR)
             return
-        
-        file_size = os.path.getsize(file_path)
-        await irc_connection.send_query(receiver, f"SENDING {filename} {file_size}")
 
         bot.get_tcp_connection().send_file(file_path)
 
