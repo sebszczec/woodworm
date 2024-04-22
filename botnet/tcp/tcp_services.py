@@ -79,7 +79,11 @@ class TCPConnection:
         size = 0
         with open(file, "wb") as file:
             while True:
-                data = self.socket.recv(1024)
+                try:
+                    data = self.socket.recv(1024)
+                except socket.timeout:
+                    continue
+                
                 if not data:
                     break
                 file.write(data)
@@ -114,10 +118,10 @@ class TCPServer:
 
     async def listen_step(self, delay):
         await asyncio.sleep(delay)
-        self.server_socket.settimeout(0.1)
+        self.server_socket.settimeout(1)
         try:
             client_socket, client_address = self.server_socket.accept()
-            client_socket.settimeout(1)
+            client_socket.settimeout(5)
             self.syslog.log(f"New TCP connection from {client_address[0]}:{client_address[1]}")
             tcp_connection = TCPConnection(client_socket)
             tcp_connection.onConnectionClosed.subscribe(self.tcpConnection_onConnectionClosed)
@@ -153,7 +157,7 @@ class TCPClient:
 
     async def connect(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client_socket.settimeout(1)
+        self.client_socket.settimeout(5)
         try:
             self.client_socket.connect((self.host, int(self.port)))
             self.syslog.log(f"TCP Connected to {self.host}:{self.port}")
