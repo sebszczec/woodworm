@@ -31,8 +31,10 @@ class TCPConnection:
 
             # Handle received data
             if data.startswith("FILE"):
-                filename = data.split()[1]
-                self.receive_file(self.socket, filename)
+                temp = data.split()[1].split("__")
+                filename = temp[0]
+                filesize = temp[1]
+                self.receive_file(self.socket, filename, filesize)
             else:
                 # Handle other commands
                 self.handle_command(data)
@@ -50,19 +52,28 @@ class TCPConnection:
         asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick))
 
     def send_file(self, filename):
-        self.socket.send(f"FILE {filename}".encode())
+        self.syslog.log(f"Sending file '{filename}'")
+        filesize = os.path.getsize(filename)
+        self.socket.send(f"FILE {filename}__{filesize}".encode())
         with open(filename, "rb") as file:
             for data in file:
                 self.socket.send(data)
         self.syslog.log(f"Sent file '{filename}' to {self.host}")
 
-    def receive_file(self, filename):
+    def receive_file(self, filename, filesize):
+        self.syslog.log(f"Receiving file '{filename}'")
+        size = 0
         with open(filename, "wb") as file:
             while True:
                 data = self.socket.recv(1024)
                 if not data:
                     break
                 file.write(data)
+
+                size = size + len(data)
+                if size >= filesize:
+                    break
+
         self.syslog.log(f"Received file '{filename}' from {self.host}")
 
     def get_socket_info(self):

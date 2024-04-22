@@ -35,6 +35,7 @@ class Woodworm:
         self.irc_connection.onSomeoneLeftChannel.subscribe(self.irc_onSomeoneLeftChannel)
         self.irc_connection.onCommandLS.subscribe(self.irc_onCommandLS)
         self.irc_connection.onCommandSTAT.subscribe(self.irc_onCommandSTAT)
+        self.irc_connection.onCommandSEND.subscribe(self.irc_onCommandSEND)
 
 
     async def start(self, debug):
@@ -81,7 +82,6 @@ class Woodworm:
             self.syslog.log(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.INFO)
             self.syslog.log(f"Number of bots: {len(self.botnetDB.get_bots())}", level=logger.LogLevel.INFO)
 
-            asyncio.wait(0.5)
             bot.get_tcp_connection().send_command(f"IDENTIFY: {self.ircNick}")
 
 
@@ -115,6 +115,27 @@ class Woodworm:
         file_size_mb = file_info['size'] / (1024 * 1024)
         file_info['size'] = f"{round(file_size_mb, 2)} MB"
         await irc_connection.send_query(nickname, f"FILE_INFO {file_info}")
+
+
+    async def irc_onCommandSEND(self, *args, **kwargs):
+        irc_connection = args[0]
+        filename = kwargs.get('filename')
+        receiver = kwargs.get('receiver')
+        file_path = os.path.join(self.storageDirectory, filename)
+
+        if not os.path.exists(file_path):
+            await irc_connection.send_query(receiver, f"No such file: {filename}")
+            return
+
+        bot = self.botnetDB.get_bot(receiver)
+        if bot is None:
+            self.syslog.log(f"Bot not found: nick: {receiver}", level=logger.LogLevel.ERROR)
+            return
+        
+        file_size = os.path.getsize(file_path)
+        await irc_connection.send_query(receiver, f"SENDING {filename} {file_size}")
+
+        bot.get_tcp_connection().send_file(file_path)
 
 
     async def list_files(self):
