@@ -190,7 +190,7 @@ class IRCConnection:
                 return
             
             self.logger.log(f"SEND command received: {filename} to {receiver}")
-            await self.onCommandSEND.notify(self, filename=filename, receiver=receiver)
+            await self.onCommandSEND.notify(self, filename=filename, receiver=receiver, nickname=nickname)
             return
             
 

