@@ -137,12 +137,8 @@ class IRCConnection:
         try:
             ip = ircmsg.split("ip:")[1].split(" ")[0]
             port = ircmsg.split("port:")[1].split()[0].strip('\r\n')
-            
-            # ircmsg =":slaugh!slaugh@89.64.9.196 PRIVMSG #vorest :BROADCAST\r\n:woodworm1!woodworm1@54.38.53.132 PRIVMSG #vorest :SPREAD ip:54.38.53.132 port:3000"
 
             ircNick = ircmsg.split('!', 1)[0][1:]
-            if "slaugh" in ircNick:
-                self.logger.log(f"{ircmsg}", level=logger.LogLevel.DEBUG)
         except:
             self.logger.log("Error parsing SPREAD message", level=logger.LogLevel.ERROR)
             return

