@@ -175,10 +175,10 @@ class TCPClient:
             self.syslog.log(f"TCP Connected to {self.host}:{self.port}")
         except ConnectionRefusedError:
             self.syslog.log(f"TCP Connection to {self.host}:{self.port} refused")
-            return False
+            return None
         except socket.timeout:
             self.syslog.log(f"TCP Connection to {self.host}:{self.port} timed out")
-            return False
+            return None
         
         tcp_connection = TCPConnection(self.client_socket)
         tcp_connection.start()

