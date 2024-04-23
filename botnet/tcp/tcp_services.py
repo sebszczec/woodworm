@@ -15,6 +15,10 @@ class TCPConnection:
         self.onIdentifyCommandReceived = event.Event()
         self.isSendingData = False
         self.lock = threading.Lock()
+        self.downloadPath = '.'
+
+    def set_download_path(self, path):
+        self.downloadPath = path
 
     def is_sending_data(self):
         with self.lock:
@@ -91,7 +95,7 @@ class TCPConnection:
         execution_time = round(execution_time, 2)
         tput = round(tput, 2)
 
-        self.syslog.log(f"Sent file '{filename}' in {execution_time} seconds, {tput} MB/s", level=logger.LogLevel.INFO)
+        self.syslog.log(f"Sent file '{name}' in {execution_time} seconds, {tput} MB/s", level=logger.LogLevel.INFO)
 
         with self.lock:
             self.isSendingData = False
@@ -100,7 +104,7 @@ class TCPConnection:
 
     def receive_file(self, filename, filesize):
         self.syslog.log(f"Receiving file '{filename}'", level=logger.LogLevel.DEBUG)
-        file = os.path.join("/home/slaugh/Downloads/d2", filename)
+        file = os.path.join(self.downloadPath, filename)
         size = 0
         with open(file, "wb") as file:
             while True:
