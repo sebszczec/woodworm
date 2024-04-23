@@ -147,7 +147,7 @@ class Woodworm:
             await irc_connection.send_query(nickname, f"Bot {receiver} is busy")
             return
 
-        result = connection.send_file(file_path)
+        result = await connection.send_file(file_path)
         await irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {result['execution_time']} seconds, {result['tput']} MB/s")
 
 

@@ -62,7 +62,7 @@ class TCPConnection:
         nick = command.split()[1]
         asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick))
 
-    def send_file(self, filename):
+    async def send_file(self, filename):
         with self.lock:
             self.isSendingData = True
 
