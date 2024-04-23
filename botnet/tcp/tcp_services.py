@@ -4,6 +4,7 @@ import os
 import asyncio
 from log import logger
 from tools import event
+import time
 
 class TCPConnection:
     def __init__(self, socket) -> None:
@@ -77,13 +78,25 @@ class TCPConnection:
         except socket.timeout:
             pass
         
+        start_time = time.time()
+
         with open(filename, "rb") as file:
             for data in file:
                 self.socket.send(data)
-        self.syslog.log(f"Sent file '{filename}'")
+
+        end_time = time.time()
+        execution_time = end_time - start_time
+        tput = int(filesize) / 1024 / 1024 / execution_time
+
+        execution_time = round(execution_time, 2)
+        tput = round(tput, 2)
+
+        self.syslog.log(f"Sent file '{filename}' in {execution_time} seconds, {tput} MB/s", level=logger.LogLevel.INFO)
 
         with self.lock:
             self.isSendingData = False
+
+        return {"tput": tput, "execution_time": execution_time}
 
     def receive_file(self, filename, filesize):
         self.syslog.log(f"Receiving file '{filename}'", level=logger.LogLevel.DEBUG)
