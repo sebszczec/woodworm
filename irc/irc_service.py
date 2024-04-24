@@ -96,7 +96,7 @@ class IRCConnection:
             if "PRIVMSG" in ircmsg:
                 await self.handle_priv_message(ircmsg)
 
-            self.logger.log(ircmsg, level=logger.LogLevel.DEBUG)
+            self.logger.log(ircmsg, level=logger.LogLevel.INFO)
 
 
     async def listen(self, delay):

