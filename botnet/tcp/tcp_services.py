@@ -16,6 +16,8 @@ class TCPConnection:
         self.isSendingData = False
         self.lock = threading.Lock()
         self.downloadPath = '.'
+        self.MAX_AUTH_RETRANSMISSIONS = 3
+        self.retransmissions = 0
 
     def set_download_path(self, path):
         self.downloadPath = path
@@ -62,9 +64,21 @@ class TCPConnection:
 
     def handle_command(self, command):
         self.syslog.log(f"Received TCP command '{command}' from {self.socket.getpeername()[0]}")
+        
         if "IDENTIFY" in command:
             nick = command.split()[1]
             asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick))
+            return
+        
+        if "AUTH-REQ" in command:
+            if self.retransmissions < self.MAX_AUTH_RETRANSMISSIONS:
+                self.retransmissions = self.retransmissions + 1
+                nick = command.split()[1]
+                self.send_command(f"IDENTIFY: {nick}")
+                return
+            
+            self.syslog.log("Max AUTH retransmissions received, ingoring IDENTIFY procedure")
+            return
 
     async def send_file(self, filename):
         with self.lock:

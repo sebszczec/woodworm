@@ -212,7 +212,7 @@ class Woodworm:
         bot = self.botnetDB.get_bot(nick)
         if bot is None:
             self.syslog.log(f"Bot not found: nick: {nick}", level=logger.LogLevel.ERROR)
-            connection.send_command("AUTH-REQ")
+            connection.send_command(f"AUTH-REQ {nick}")
             return
         
         bot.set_reversed_tcp_connection(connection)
