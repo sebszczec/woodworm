@@ -174,8 +174,8 @@ class IRCConnection:
         
         if "SEND" in command:
             try:
-                filename = command.split('SEND', 1)[1].split(' ', 2)[1]
-                receiver = command.split('SEND', 1)[1].split(' ', 2)[2]
+                receiver = command.split('SEND', 1)[1].split(' ', 2)[1]
+                filename = command.split('SEND', 1)[1].split(' ', 2)[2]
             except:
                 self.logger.log("Error parsing SEND command", level=logger.LogLevel.ERROR)
                 return
