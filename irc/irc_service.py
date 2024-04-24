@@ -4,8 +4,6 @@ from log import logger
 from tools import event
 
 class IRCConnection:
-    
-
 
     def __init__(self, server, domain, port, nickname, channel):
         self.server = server
@@ -24,6 +22,8 @@ class IRCConnection:
         self.onCommandLS = event.Event()
         self.onCommandSTAT = event.Event()
         self.onCommandSEND = event.Event()
+        self.onCommandHELP = event.Event()
+        self.onCommandSTATUS = event.Event()
 
 
     async def connect(self):
@@ -105,7 +105,7 @@ class IRCConnection:
 
 
     async def handle_channel_commands(self, ircmsg):
-        if ircmsg.startswith("PING :"):
+        if "PING" in ircmsg:
             await self.handle_ping()
 
         if "BROADCAST" in ircmsg:
@@ -164,17 +164,12 @@ class IRCConnection:
 
     
     async def handle_priv_command(self, nickname, command):
-        if "LS" in command:
-            await self.onCommandLS.notify(self, nickname=nickname)
+        if "HELP" in command:
+            await self.onCommandHELP.notify(self, nickname=nickname)
             return
         
-        if "STAT" in command:
-            try:
-                filename = command.split('STAT', 1)[1].split(' ', 1)[1]
-            except:
-                self.logger.log("Error parsing STAT command", level=logger.LogLevel.ERROR)
-                return
-            await self.onCommandSTAT.notify(self, filename=filename, nickname=nickname)
+        if "LS" in command:
+            await self.onCommandLS.notify(self, nickname=nickname)
             return
         
         if "SEND" in command:
@@ -188,11 +183,21 @@ class IRCConnection:
             self.logger.log(f"SEND command received: {filename} to {receiver}")
             await self.onCommandSEND.notify(self, filename=filename, receiver=receiver, nickname=nickname)
             return
-            
 
 
+        if "STATUS" in command:
+            await self.onCommandSTATUS.notify(self, nickname=nickname)
+            return
 
 
+        if "STAT" in command:
+            try:
+                filename = command.split('STAT', 1)[1].split(' ', 1)[1]
+            except:
+                self.logger.log("Error parsing STAT command", level=logger.LogLevel.ERROR)
+                return
+            await self.onCommandSTAT.notify(self, filename=filename, nickname=nickname)
+            return
 
 
 

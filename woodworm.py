@@ -36,6 +36,8 @@ class Woodworm:
         self.irc_connection.onCommandLS.subscribe(self.irc_onCommandLS)
         self.irc_connection.onCommandSTAT.subscribe(self.irc_onCommandSTAT)
         self.irc_connection.onCommandSEND.subscribe(self.irc_onCommandSEND)
+        self.irc_connection.onCommandHELP.subscribe(self.irc_onCommandHELP)
+        self.irc_connection.onCommandSTATUS.subscribe(self.irc_onCommandSTATUS)
 
 
     async def start(self, debug):
@@ -82,7 +84,7 @@ class Woodworm:
             self.syslog.log(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.INFO)
             self.syslog.log(f"Number of bots: {len(self.botnetDB.get_bots())}", level=logger.LogLevel.INFO)
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
             bot.get_tcp_connection().send_command(f"IDENTIFY: {self.ircNick}")
 
 
@@ -152,6 +154,32 @@ class Woodworm:
         await irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {result['execution_time']} seconds, {result['tput']} MB/s")
 
 
+    async def irc_onCommandHELP(self, *args, **kwargs):
+        irc_connection = args[0]
+        nickname = kwargs.get('nickname')
+        await irc_connection.send_query(nickname, "HELP: HELP, LS, SEND, STATUS, STAT")
+
+
+    async def irc_onCommandSTATUS(self, *args, **kwargs):
+        irc_connection = args[0]
+        nickname = kwargs.get('nickname')
+        await irc_connection.send_query(nickname, f"STATUS: {len(self.botnetDB.get_bots())} bots connected")
+
+        for bot in self.botnetDB.get_bots().values():
+            info = f"BOT: {bot.get_ircNick()} {bot.get_ip()}:{bot.get_port()}"
+            connection = bot.get_tcp_connection()
+            if connection is not None:
+                info += f" TCP connection: [active]"
+            else:
+                info += f" TCP connection: [inactive]"
+            connection = bot.get_reversed_tcp_connection()
+            if connection is not None:
+                info += f" Reversed TCP connection: [active]"
+            else:
+                info += f" Reversed TCP connection: [inactive]"
+            await irc_connection.send_query(nickname, info)
+
+
     async def list_files(self):
         files = []
         try:
@@ -196,3 +224,4 @@ class Woodworm:
             await asyncio.sleep(1)
             # self.syslog.log("I'm still alive!", level=logger.LogLevel.DEBUG) 
 
+    
