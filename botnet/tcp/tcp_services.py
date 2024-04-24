@@ -44,8 +44,8 @@ class TCPConnection:
 
             # Handle received data
             if data.startswith("FILE"):
-                self.syslog.log(f"Proceeding FILE request", level=logger.LogLevel.DEBUG)
-                temp = data.split()[1].split("__")
+                self.syslog.log(f"Proceeding FILE request {data}", level=logger.LogLevel.DEBUG)
+                temp = data.split(' ', 1)[1].split("__")
                 filename = temp[0]
                 filesize = temp[1]
 
