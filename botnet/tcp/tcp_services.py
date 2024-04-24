@@ -61,10 +61,10 @@ class TCPConnection:
         self.socket.send(command.encode())
 
     def handle_command(self, command):
-        # Handle the command here
         self.syslog.log(f"Received TCP command '{command}' from {self.socket.getpeername()[0]}")
-        nick = command.split()[1]
-        asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick))
+        if "IDENTIFY" in command:
+            nick = command.split()[1]
+            asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick))
 
     async def send_file(self, filename):
         with self.lock:
