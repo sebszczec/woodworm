@@ -88,7 +88,7 @@ class Woodworm:
             connection = await tcpClient.connect()
             if connection is not None:
                 bot.set_tcp_connection(connection)
-                bot.get_tcp_connection().set_download_path(self.filesPath)
+                bot.get_tcp_connection().set_download_path(self.pathToFiles)
                 bot.get_tcp_connection().send_command(f"IDENTIFY: {self.ircNick}")
             else:
                 logging.error(f"Failed to TCP connect to bot: nick: {nick}, ip: {ip} port: {port}")
