@@ -12,16 +12,21 @@ import logging
 
 
 class Woodworm:
-    def __init__(self, pathToFiles, ircNick, channel, domain, ircServer, ircServerPort, tcpPort):
+    def __init__(self, config):
         self.botnetDB = botnet_database.BotnetDatabase()
-        self.storageDirectory = pathToFiles
-        self.ircNick = ircNick
-        self.channel = channel 
-        self.domain = domain
-        self.ircServer = ircServer
-        self.ircServerPort = ircServerPort
+        self.pathToFiles = config['general']['pathToFiles']
+        self.ircNick = config['irc']['nick']
+        self.channel = config['irc']['channel']
+        self.domain = config['irc']['domain']
+        self.ircServer = config['irc']['server']
+        self.ircServerPort = int(config['irc']['port'])
+        self.tcpPort = int(config['general']['tcpPort'])
+        self.ftpPort = int(config['ftp']['port'])
+        self.ftpUser = config['ftp']['user']
+        self.ftpPassword = config['ftp']['password']
+        self.ftpPassiveRange = range(int(config['ftp']['passiveRangeStart']), int(config['ftp']['passiveRangeStop']))
         self.my_ip = socket.gethostbyname(socket.gethostname())
-        self.tcpPort = tcpPort
+
 
         self.myContext = context.Context(self.ircNick, self.my_ip, self.tcpPort)
 
@@ -39,7 +44,7 @@ class Woodworm:
         self.irc_connection.onCommandHELP.subscribe(self.irc_onCommandHELP)
         self.irc_connection.onCommandSTATUS.subscribe(self.irc_onCommandSTATUS)
         
-        self.ftp = ftp_services.FTPServer()
+        self.ftp = ftp_services.FTPServer(self.my_ip, self.ftpPort, self.ftpUser, self.ftpPassword, self.ftpPassiveRange, self.pathToFiles)
 
 
     async def start(self, debug):

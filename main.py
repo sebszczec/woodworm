@@ -41,7 +41,10 @@ if __name__ == "__main__":
     ircServerPort = int(config['irc']['port'])
     tcpPort = int(config['general']['tcpPort'])
 
-    ftpPassiveRange = range(1, 10)
+    ftpPort = int(config['ftp']['port'])
+    ftpUser = config['ftp']['user']
+    ftpPassword = config['ftp']['password']
+    ftpPassiveRange = range(int(config['ftp']['passiveRangeStart']), int(config['ftp']['passiveRangeStop']))
 
     
     logging.basicConfig(level=logging.DEBUG)
@@ -51,6 +54,6 @@ if __name__ == "__main__":
     logger.removeHandler(logger.handlers[0])
     logger.addHandler(handler)
 
-    worm = woodworm.Woodworm(pathToFiles, ircNick, channel, domain, ircServer, ircServerPort, tcpPort)
+    worm = woodworm.Woodworm(config)
     asyncio.run(worm.start(debug=False))
     
