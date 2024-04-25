@@ -4,6 +4,7 @@ import sys
 import asyncio
 import woodworm
 import logging
+import json
 
 class CustomFormatter(logging.Formatter):
 
@@ -29,18 +30,18 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 8:
-        print("Usage: python main.py <pathToFiles> <ircNick> <channel> <domain> <ircServer> <ircServerPort> <tcpPort>")
-        print (f"{len(sys.argv)}")
-        sys.exit(1)
+    with open('config.json') as f:
+        config = json.load(f)
 
-    pathToFiles = sys.argv[1]
-    ircNick = sys.argv[2]
-    channel = sys.argv[3]
-    domain = sys.argv[4]
-    ircServer = sys.argv[5]
-    ircServerPort = int(sys.argv[6])
-    tcpPort = int(sys.argv[7])
+    pathToFiles = config['general']['pathToFiles']
+    ircNick = config['irc']['nick']
+    channel = config['irc']['channel']
+    domain = config['irc']['domain']
+    ircServer = config['irc']['server']
+    ircServerPort = int(config['irc']['port'])
+    tcpPort = int(config['general']['tcpPort'])
+
+    ftpPassiveRange = range(1, 10)
 
     
     logging.basicConfig(level=logging.DEBUG)
