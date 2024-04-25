@@ -3,6 +3,7 @@ from pyftpdlib import servers
 from pyftpdlib.handlers import FTPHandler
 import os
 import asyncio
+import logging
 
 class FTPServer(threading.Thread):
     def __init__(self, host='', port=3021, username='anonymous', password=''):
@@ -20,7 +21,7 @@ class FTPServer(threading.Thread):
         server = servers.FTPServer((self.host, self.port), handler)
         server.serve_forever()
 
-    async def start(self):
+    async def start(self):        
         service = asyncio.to_thread(self.run)
         task = asyncio.create_task(service)
 

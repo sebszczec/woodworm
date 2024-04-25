@@ -1,7 +1,7 @@
 import socket
 import asyncio
-from log import logger
 from tools import event
+import logging
 
 class IRCConnection:
 
@@ -12,7 +12,6 @@ class IRCConnection:
         self.nickname = nickname
         self.channel = channel
         self.IRC = None
-        self.logger = logger.Logger()
         self.MSG_LEN = 2048
         self.isConnected = False
         self.onConnected = event.Event()
@@ -24,6 +23,7 @@ class IRCConnection:
         self.onCommandSEND = event.Event()
         self.onCommandHELP = event.Event()
         self.onCommandSTATUS = event.Event()
+
 
 
     async def connect(self):
@@ -88,7 +88,7 @@ class IRCConnection:
             if self.isConnected is False and ("End of /MOTD command" in ircmsg or "376" in ircmsg):
                 self.isConnected = True
                 await self.onConnected.notify(self)
-                self.logger.log(ircmsg)
+                logging.info(ircmsg)
                 continue
 
             await self.handle_channel_commands(ircmsg)
@@ -96,7 +96,7 @@ class IRCConnection:
             if "PRIVMSG" in ircmsg:
                 await self.handle_priv_message(ircmsg)
 
-            self.logger.log(ircmsg, level=logger.LogLevel.INFO)
+            logging.info(ircmsg)
 
 
     async def listen(self, delay):
@@ -125,7 +125,7 @@ class IRCConnection:
 
     async def handle_ping(self):
         await self.send_data("PONG :pingisn")
-        self.logger.log("PONG :pingisn")
+        logging.info("PONG :pingisn")
 
 
     async def handle_broadcast_request(self):
@@ -133,14 +133,14 @@ class IRCConnection:
 
 
     async def handle_spread_detected(self, ircmsg):
-        # self.logger.log(f"{ircmsg}", level=logger.LogLevel.DEBUG)
+        # logging.debug(f"{ircmsg}")
         try:
             ip = ircmsg.split("ip:")[1].split(" ")[0]
             port = ircmsg.split("port:")[1].split()[0].strip('\r\n')
 
             ircNick = ircmsg.split('!', 1)[0][1:]
         except:
-            self.logger.log("Error parsing SPREAD message", level=logger.LogLevel.ERROR)
+            logging.error("Error parsing SPREAD message")
             return
 
         await self.onSpreadDetected.notify(self, ip = ip, port = port, ircNick = ircNick)
@@ -152,7 +152,7 @@ class IRCConnection:
 
 
     async def handle_join(self):
-        self.logger.log("JOIN detected, sending BROADCAST", level=logger.LogLevel.DEBUG)
+        logging.debug("JOIN detected, sending BROADCAST")
         await self.send_message("BROADCAST")
 
 
@@ -160,7 +160,7 @@ class IRCConnection:
         nickname = ircmsg.split('!', 1)[0][1:]
         message = ircmsg.split('PRIVMSG', 1)[1].split(':', 1)[1]
         await self.handle_priv_command(nickname, message)
-        # self.logger.log(f"Name: {nickname}, Message: {message}")
+        # logging.debug(f"Name: {nickname}, Message: {message}")
 
     
     async def handle_priv_command(self, nickname, command):
@@ -177,10 +177,10 @@ class IRCConnection:
                 receiver = command.split('SEND', 1)[1].split(' ', 2)[1]
                 filename = command.split('SEND', 1)[1].split(' ', 2)[2]
             except:
-                self.logger.log("Error parsing SEND command", level=logger.LogLevel.ERROR)
+                logging.error("Error parsing SEND command")
                 return
             
-            self.logger.log(f"SEND command received: {filename} to {receiver}")
+            logging.info(f"SEND command received: {filename} to {receiver}")
             await self.onCommandSEND.notify(self, filename=filename, receiver=receiver, nickname=nickname)
             return
 
@@ -194,7 +194,7 @@ class IRCConnection:
             try:
                 filename = command.split('STAT', 1)[1].split(' ', 1)[1]
             except:
-                self.logger.log("Error parsing STAT command", level=logger.LogLevel.ERROR)
+                logging.error("Error parsing STAT command")
                 return
             await self.onCommandSTAT.notify(self, filename=filename, nickname=nickname)
             return

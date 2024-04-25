@@ -2,13 +2,12 @@ import socket
 import threading
 import os
 import asyncio
-from log import logger
 from tools import event
 import time
+import logging
 
 class TCPConnection:
     def __init__(self, socket) -> None:
-        self.syslog = logger.Logger()
         self.socket = socket
         self.socketInfo = self.socket.getpeername()
         self.onConnectionClosed = event.Event()
@@ -44,7 +43,7 @@ class TCPConnection:
 
             # Handle received data
             if data.startswith("FILE"):
-                self.syslog.log(f"Proceeding FILE request {data}", level=logger.LogLevel.DEBUG)
+                logging.debug(f"Proceeding FILE request {data}")
                 temp = data.split(' ', 1)[1].split("__")
                 filename = temp[0]
                 filesize = temp[1]
@@ -63,7 +62,7 @@ class TCPConnection:
         self.socket.send(command.encode())
 
     def handle_command(self, command):
-        self.syslog.log(f"Received TCP command '{command}' from {self.socket.getpeername()[0]}")
+        logging.info(f"Received TCP command '{command}' from {self.socket.getpeername()[0]}")
         
         if "IDENTIFY" in command:
             nick = command.split()[1]
@@ -77,14 +76,14 @@ class TCPConnection:
                 self.send_command(f"IDENTIFY: {nick}")
                 return
             
-            self.syslog.log("Max AUTH retransmissions received, ingoring IDENTIFY procedure")
+            logging.info("Max AUTH retransmissions received, ingoring IDENTIFY procedure")
             return
 
     async def send_file(self, filename):
         with self.lock:
             self.isSendingData = True
 
-        self.syslog.log(f"Sending file '{filename}'", level=logger.LogLevel.DEBUG)
+        logging.debug(f"Sending file '{filename}'")
         filesize = os.path.getsize(filename)
         name = os.path.basename(filename)
         self.send_command(f"FILE {name}__{filesize}")
@@ -92,7 +91,7 @@ class TCPConnection:
         try:
             data = self.socket.recv(1024).decode()
             if data.startswith("READY TO RECEIVE"):
-                self.syslog.log(f"Received READY TO RECEIVE", level=logger.LogLevel.DEBUG)
+                logging.debug(f"Received READY TO RECEIVE")
         except socket.timeout:
             pass
         
@@ -109,7 +108,7 @@ class TCPConnection:
         execution_time = round(execution_time, 2)
         tput = round(tput, 2)
 
-        self.syslog.log(f"Sent file '{name}' in {execution_time} seconds, {tput} MB/s", level=logger.LogLevel.INFO)
+        logging.info(f"Sent file '{name}' in {execution_time} seconds, {tput} MB/s")
 
         with self.lock:
             self.isSendingData = False
@@ -117,7 +116,7 @@ class TCPConnection:
         return {"tput": tput, "execution_time": execution_time}
 
     def receive_file(self, filename, filesize):
-        self.syslog.log(f"Receiving file '{filename}'", level=logger.LogLevel.DEBUG)
+        logging.debug(f"Receiving file '{filename}'")
         file = os.path.join(self.downloadPath, filename)
         size = 0
         with open(file, "wb") as file:
@@ -135,7 +134,7 @@ class TCPConnection:
                 if size >= int(filesize):
                     break
 
-        self.syslog.log(f"Received file '{filename}'")
+        logging.info(f"Received file '{filename}'")
 
     def get_socket_info(self):
         return self.socketInfo
@@ -150,14 +149,13 @@ class TCPServer:
         self.port = port
         self.server_socket = None
         self.clients = []
-        self.syslog = logger.Logger()
         self.onConnectionRegistered = event.Event()
 
     async def start(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(5)
-        self.syslog.log(f"TCP Server started on {self.host}:{self.port}")
+        logging.info(f"TCP Server started on {self.host}:{self.port}")
 
     async def listen_step(self, delay):
         await asyncio.sleep(delay)
@@ -165,7 +163,7 @@ class TCPServer:
         try:
             client_socket, client_address = self.server_socket.accept()
             client_socket.settimeout(5)
-            self.syslog.log(f"New TCP connection from {client_address[0]}:{client_address[1]}")
+            logging.info(f"New TCP connection from {client_address[0]}:{client_address[1]}")
             tcp_connection = TCPConnection(client_socket)
             tcp_connection.onConnectionClosed.subscribe(self.tcpConnection_onConnectionClosed)
             tcp_connection.onIdentifyCommandReceived.subscribe(self.tpcConnection_onIdentifyCommandReceived)
@@ -175,14 +173,14 @@ class TCPServer:
             return
 
     async def listen(self, delay):
-        self.syslog.log("Listening for incoming TCP connections")
+        logging.info("Listening for incoming TCP connections")
         while True:
             await self.listen_step(delay)
 
     async def tcpConnection_onConnectionClosed(self, *args, **kwargs):
         connection = args[0]
         info = connection.get_socket_info()
-        self.syslog.log(f"TCP connection {info[0]}:{info[1]} closed")
+        logging.info(f"TCP connection {info[0]}:{info[1]} closed")
         self.clients.remove(connection)
 
     async def tpcConnection_onIdentifyCommandReceived(self, *args, **kwargs):
@@ -196,19 +194,18 @@ class TCPClient:
         self.host = host
         self.port = port
         self.client_socket = None
-        self.syslog = logger.Logger()
 
     async def connect(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_socket.settimeout(5)
         try:
             self.client_socket.connect((self.host, int(self.port)))
-            self.syslog.log(f"TCP Connected to {self.host}:{self.port}")
+            logging.info(f"TCP Connected to {self.host}:{self.port}")
         except ConnectionRefusedError:
-            self.syslog.log(f"TCP Connection to {self.host}:{self.port} refused")
+            logging.info(f"TCP Connection to {self.host}:{self.port} refused")
             return None
         except socket.timeout:
-            self.syslog.log(f"TCP Connection to {self.host}:{self.port} timed out")
+            logging.info(f"TCP Connection to {self.host}:{self.port} timed out")
             return None
         
         tcp_connection = TCPConnection(self.client_socket)

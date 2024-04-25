@@ -3,6 +3,7 @@ import woodworm
 import sys
 import asyncio
 import woodworm
+import logging
 
 if __name__ == "__main__":
     if len(sys.argv) != 8:
@@ -17,6 +18,9 @@ if __name__ == "__main__":
     ircServer = sys.argv[5]
     ircServerPort = int(sys.argv[6])
     tcpPort = int(sys.argv[7])
+
+    
+    logging.basicConfig(level=logging.DEBUG)
 
     worm = woodworm.Woodworm(pathToFiles, ircNick, channel, domain, ircServer, ircServerPort, tcpPort)
     asyncio.run(worm.start(debug=False))
