@@ -228,7 +228,7 @@ class Woodworm:
             return
         
         bot.set_reversed_tcp_connection(connection)
-        bot.get_reversed_tcp_connection().set_download_path(self.storageDirectory)
+        bot.get_reversed_tcp_connection().set_download_path(self.pathToFiles)
         logging.info(f"Reverse connection established with nick: {nick}")
 
 
