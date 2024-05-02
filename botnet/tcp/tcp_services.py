@@ -8,6 +8,7 @@ import logging
 
 class TCPConnection:
     def __init__(self, socket) -> None:
+        self.parent = None
         self.socket = socket
         self.socketInfo = self.socket.getpeername()
         self.onConnectionClosed = event.Event()
@@ -143,6 +144,26 @@ class TCPConnection:
         self.socket.close()
 
 
+class TCPSession:
+    def __init__(self):
+        self.dataLink = None
+        self.controlLink = None
+
+    def set_data_link(self, dataLink : TCPConnection):
+        self.dataLink = dataLink
+        self.dataLink.parent = self
+
+    def get_data_link(self):
+        return self.dataLink
+    
+    def set_control_link(self, controlLink : TCPConnection):
+        self.controlLink = controlLink
+        self.controlLink.parent = self
+
+    def get_control_link(self):
+        return self.controlLink
+
+
 class TCPServer:
     def __init__(self, host, port):
         self.host = host
@@ -210,4 +231,8 @@ class TCPClient:
         
         tcp_connection = TCPConnection(self.client_socket)
         tcp_connection.start()
-        return tcp_connection
+
+        tcpSession = TCPSession()
+        tcpSession.set_data_link(tcp_connection)
+
+        return tcpSession

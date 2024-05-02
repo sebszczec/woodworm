@@ -30,23 +30,6 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 if __name__ == "__main__":
-    with open('config.json') as f:
-        config = json.load(f)
-
-    pathToFiles = config['general']['pathToFiles']
-    ircNick = config['irc']['nick']
-    channel = config['irc']['channel']
-    domain = config['irc']['domain']
-    ircServer = config['irc']['server']
-    ircServerPort = int(config['irc']['port'])
-    tcpPort = int(config['general']['tcpPort'])
-
-    ftpPort = int(config['ftp']['port'])
-    ftpUser = config['ftp']['user']
-    ftpPassword = config['ftp']['password']
-    ftpPassiveRange = range(int(config['ftp']['passiveRangeStart']), int(config['ftp']['passiveRangeStop']))
-
-    
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger()
     handler = logging.StreamHandler()
@@ -54,6 +37,19 @@ if __name__ == "__main__":
     logger.removeHandler(logger.handlers[0])
     logger.addHandler(handler)
 
+    if len(sys.argv) > 1:
+        config_file = sys.argv[1]
+        logger.info(f"Using custom config file: {config_file}")
+    else:
+        config_file = 'config.json'
+
+    with open(config_file) as f:
+        config = json.load(f)
+
     worm = woodworm.Woodworm(config)
-    asyncio.run(worm.start(debug=False))
+    try:
+        asyncio.run(worm.start(debug=False))   
+    except Exception as e:
+        logger.critical(f"Unhalted exception: {str(e)}")
+        sys.exit(1)
     

