@@ -74,16 +74,22 @@ class TCPConnection:
     def handle_command(self, command):
         logging.info(f"Received TCP command '{command}' from {self.socket.getpeername()[0]}")
         
-        if "IDENTIFY" in command:
+        if "DIDENTIFY" in command:
             nick = command.split()[1]
-            asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick))
+            asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick, linkType=TCPConnection.LinkType.DATA))
             return
         
-        if "AUTH-REQ" in command:
+        if "CIDENTIFY" in command:
+            nick = command.split()[1]
+            asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick, linkType=TCPConnection.LinkType.CONTROL))
+            return
+        
+        if "DAUTH-REQ" in command or "CAUTH-REQ" in command:
             if self.retransmissions < self.MAX_AUTH_RETRANSMISSIONS:
+                request = command[0] + "IDENTIFY" # command[0] is either 'D' or 'C'
                 self.retransmissions = self.retransmissions + 1
                 nick = command.split()[1]
-                self.send_command(f"IDENTIFY: {nick}")
+                self.send_command(f"{request}: {nick}")
                 return
             
             logging.info("Max AUTH retransmissions received, ingoring IDENTIFY procedure")
@@ -175,7 +181,8 @@ class TCPSession:
         return self.controlLink
     
     def identify(self, ircNick):
-        self.dataLink.send_command(f"IDENTIFY {ircNick}")
+        self.dataLink.send_command(f"DIDENTIFY {ircNick}")
+        self.controlLink.send_command(f"CIDENTIFY {ircNick}")
         pass
 
     async def onConnectionClosed(self, *args, **kwargs):
@@ -225,7 +232,8 @@ class TCPServer:
     async def tpcConnection_onIdentifyCommandReceived(self, *args, **kwargs):
         connection = args[0]
         sender = kwargs.get("sender")
-        await self.onConnectionRegistered.notify(self, connection=connection, sender=sender)
+        linkType = kwargs.get("linkType")
+        await self.onConnectionRegistered.notify(self, connection=connection, sender=sender, linkType=linkType)
     
 
 class TCPClient:
@@ -250,15 +258,20 @@ class TCPClient:
 
     async def connect(self):
         data_link_socket = await self.__connect()
+        control_link_socket = await self.__connect()
 
-        if data_link_socket is None:
+        if data_link_socket is None or control_link_socket is None:
             return None 
         
-        tcp_connection = TCPConnection(data_link_socket, TCPConnection.LinkType.DATA)
-        tcp_connection.start()
+        data_connection = TCPConnection(data_link_socket, TCPConnection.LinkType.DATA)
+        data_connection.start()
+
+        control_connection = TCPConnection(control_link_socket, TCPConnection.LinkType.CONTROL)
+        control_connection.start()
 
         tcpSession = TCPSession()
-        tcpSession.set_data_link(tcp_connection)
+        tcpSession.set_data_link(data_connection)
+        tcpSession.set_control_link(control_connection)
         tcpSession.isActive = True
 
         return tcpSession

