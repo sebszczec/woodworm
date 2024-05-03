@@ -6,8 +6,8 @@ class Context:
         self.ip = ip
         self.port = port
         self.connected = False
-        self.TcpSession = None
-        self.TcpReversedConnection = None
+        self.TcpSession = tcp_services.TCPSession()
+        self.TcpReversedSession = tcp_services.TCPSession()
 
     def get_ircNick(self):
         return self.ircNick
@@ -23,20 +23,18 @@ class Context:
             return
         
         self.TcpSession = tcp_session
-        self.TcpSession.get_data_link().onConnectionClosed.subscribe(self.onConnectionClosed)
 
     def get_tcp_session(self):
         return self.TcpSession
     
-    def set_reversed_tcp_connection(self, tcp_connection):
-        if tcp_connection is None:
+    def set_reversed_session(self, tcp_session):
+        if tcp_session is None:
             return  
         
-        self.TcpReversedConnection = tcp_connection
-        self.TcpReversedConnection.onConnectionClosed.subscribe(self.onReversedConnectionClosed)
+        self.TcpReversedSession = tcp_session
 
-    def get_reversed_tcp_connection(self):
-        return self.TcpReversedConnection
+    def get_reversed_tcp_session(self):
+        return self.TcpReversedSession
 
     async def onConnectionClosed(self, *args, **kwargs):
         self.TcpSession = None

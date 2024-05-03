@@ -50,6 +50,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(worm.start(debug=False))   
     except Exception as e:
-        logger.critical(f"Unhalted exception: {str(e)}")
+        logger.critical(f"Unhandled exception: {str(e)}")
         sys.exit(1)
     
