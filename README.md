@@ -28,6 +28,8 @@ IRC commands handled by <i>woodworm</i> when asked directly:
 Each <i>woodworm</i> is both: a TCP server and a TCP client to all other <i>woodworms</i> TCP servers stored in botnet database. Connection from client to server (C->S) is called TCP session and it consists of two seperate TCP socket connections: one for commands, other for binary data transfer. Connection from server to connected client (S->C) is called a reversed TCP session and allows TCP data handling if other way around is impossible.<br /><br />
 Scenario: <i>woodworm A</i> <--> <i>woodworm B</i>
 <ul>
-  <li>A client is connected to server B via TCP session AB</li>
-  <ul><li>Two separate connection are in this session: control and data link. First to handle commands exchange, second to handle binary data</li><li>Same time B server is connected to client A via reversed TCP session R-AB. Two links are in use as above </li></ul>
+  <li>Client A is connected to server B via TCP session AB</li>
+  <ul><li>Two separate connection are in this session: control and data link. First to handle commands exchange, second to handle binary data</li><li>Same time server B is connected to client A via reversed TCP session R-AB. Two links are in use as above </li></ul>
+  <li>Client B is connected to server A via TCP session BA</li>
+  <ul><li>Two separate connection are in this session: control and data link. First to handle commands exchange, second to handle binary data</li><li>Same time server A is connected to client B via reversed TCP session R-BA. Two links are in use as above </li></ul>
 </ul>
