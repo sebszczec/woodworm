@@ -19,18 +19,12 @@ class Context:
         return self.port
     
     def set_tcp_session(self, tcp_session):
-        if tcp_session is None:
-            return
-        
         self.TcpSession = tcp_session
 
     def get_tcp_session(self):
         return self.TcpSession
     
     def set_reversed_session(self, tcp_session):
-        if tcp_session is None:
-            return  
-        
         self.TcpReversedSession = tcp_session
 
     def get_reversed_tcp_session(self):

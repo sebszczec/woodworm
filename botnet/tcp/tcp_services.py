@@ -25,6 +25,7 @@ class TCPConnection:
         self.downloadPath = '.'
         self.MAX_AUTH_RETRANSMISSIONS = 3
         self.retransmissions = 0
+        self.isLoop = True
 
     def get_link_type(self):
         return self.linkType
@@ -42,6 +43,8 @@ class TCPConnection:
 
     def handle_data(self):
         while True:
+            if not self.isLoop:
+                return
             try:
                 data = self.socket.recv(1024).decode()
             except socket.timeout:
@@ -63,11 +66,12 @@ class TCPConnection:
     def handle_command(self, command):
         logging.info(f"{self.linkType}: Received TCP command '{command}' from {self.socket.getpeername()[0]}")
 
-        if "FILE" in command:
+        if "CFILE" in command:
             logging.debug(f"{self.linkType}: Proceeding FILE request {command}")
             temp = command.split(' ', 1)[1].split("__")
             filename = temp[0]
             filesize = temp[1]
+            self.parent.get_data_link().receive_file(filename, filesize)
             return
         
         if "DIDENTIFY" in command:
@@ -88,48 +92,22 @@ class TCPConnection:
                 self.send_command(f"{request}: {nick}")
                 return
             
+            if self.linkType == TCPConnection.LinkType.DATA:
+                self.isLoop = False
+
             logging.info("{self.linkType}: Max AUTH retransmissions received, ingoring IDENTIFY procedure")
             return
 
-    async def send_file(self, filename):
-        pass
-        # with self.lock:
-        #     self.isSendingData = True
+        if "DSTOP_LOOP" in command:
+            self.isLoop = False
+            return
 
-        # logging.debug(f"Sending file '{filename}'")
-        # filesize = os.path.getsize(filename)
-        # name = os.path.basename(filename)
-        # self.send_command(f"FILE {name}__{filesize}")
+    def send_binary_data(self, data):
+        self.socket.send(data)
 
-        # try:
-        #     data = self.socket.recv(1024).decode()
-        #     if data.startswith("READY TO RECEIVE"):
-        #         logging.debug(f"Received READY TO RECEIVE")
-        # except socket.timeout:
-        #     pass
-        
-        # start_time = time.time()
-
-        # with open(filename, "rb") as file:
-        #     for data in file:
-        #         self.socket.send(data)
-
-        # end_time = time.time()
-        # execution_time = end_time - start_time
-        # tput = int(filesize) / 1024 / 1024 / execution_time
-
-        # execution_time = round(execution_time, 2)
-        # tput = round(tput, 2)
-
-        # logging.info(f"Sent file '{name}' in {execution_time} seconds, {tput} MB/s")
-
-        # with self.lock:
-        #     self.isSendingData = False
-
-        # return {"tput": tput, "execution_time": execution_time}
 
     def receive_file(self, filename, filesize):
-        logging.debug(f"Receiving file '{filename}'")
+        logging.debug(f"{self.linkType}: Receiving file '{filename}'")
         file = os.path.join(self.downloadPath, filename)
         size = 0
         with open(file, "wb") as file:
@@ -166,6 +144,7 @@ class TCPSession:
 
     def set_data_link(self, dataLink : TCPConnection):
         self.dataLink = dataLink
+        self.dataLink.linkType = TCPConnection.LinkType.DATA
         self.dataLink.parent = self
         self.dataLink.onConnectionClosed.subscribe(self.onConnectionClosed)
 
@@ -174,6 +153,7 @@ class TCPSession:
     
     def set_control_link(self, controlLink : TCPConnection):
         self.controlLink = controlLink
+        self.controlLink.linkType = TCPConnection.LinkType.CONTROL
         self.controlLink.parent = self
 
     def get_control_link(self):
@@ -185,6 +165,7 @@ class TCPSession:
         pass
 
     async def onConnectionClosed(self, *args, **kwargs):
+        logging.debug(f"TCP connection close detected, closing session")
         self.isActive = False
 
     def send_command(self, command):
@@ -200,9 +181,11 @@ class TCPSession:
 
         start_time = time.time()
 
-        # TODO: start imp
-        self.send_command(f"FILE {name}__{filesize}")
-        # TODO: stop imp
+        self.send_command(f"CFILE {name}__{filesize}")
+
+        with open(filename, "rb") as file:
+            for data in file:
+                self.get_data_link().send_binary_data(data)
 
         end_time = time.time()
         execution_time = end_time - start_time
