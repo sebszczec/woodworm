@@ -164,6 +164,8 @@ class TCPSession:
         self.dataLink = None
         self.controlLink = None
         self.isActive = False
+        self.isSendingData = False
+        self.lock = threading.Lock()
 
     def set_data_link(self, dataLink : TCPConnection):
         self.dataLink = dataLink
@@ -188,6 +190,17 @@ class TCPSession:
     async def onConnectionClosed(self, *args, **kwargs):
         self.isActive = False
 
+    def send_command(self, command):
+        self.controlLink.send_command(command)
+
+    def send_file(self, filename):
+        with self.lock:
+            self.isSendingData = True
+
+        # TODO: missing implementation
+
+        with self.lock:
+            self.isSendingData = False
 
 class TCPServer:
     def __init__(self, host, port):
@@ -210,7 +223,7 @@ class TCPServer:
             client_socket, client_address = self.server_socket.accept()
             client_socket.settimeout(5)
             logging.info(f"New TCP connection from {client_address[0]}:{client_address[1]}")
-            tcp_connection = TCPConnection(client_socket, TCPConnection.LinkType.DATA)
+            tcp_connection = TCPConnection(client_socket, TCPConnection.LinkType.CONTROL)
             tcp_connection.onConnectionClosed.subscribe(self.tcpConnection_onConnectionClosed)
             tcp_connection.onIdentifyCommandReceived.subscribe(self.tpcConnection_onIdentifyCommandReceived)
             self.clients.append(tcp_connection)

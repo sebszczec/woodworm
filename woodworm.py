@@ -240,6 +240,7 @@ class Woodworm:
         tcpReversedSession.isActive = True
 
         connection.set_download_path(self.pathToFiles)
+        connection.linkType = linkType
         if linkType == tcp_services.TCPConnection.LinkType.DATA:
             tcpReversedSession.set_data_link(connection)
         else:
