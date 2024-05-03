@@ -9,6 +9,7 @@ from enum import Enum
 
 class TCPConnection:
     class LinkType(Enum):
+        UNKNOWN = 0
         DATA = 1
         CONTROL = 2
 
@@ -51,19 +52,7 @@ class TCPConnection:
             if not data:
                 break
 
-            # Handle received data
-            if data.startswith("FILE"):
-                logging.debug(f"Proceeding FILE request {data}")
-                temp = data.split(' ', 1)[1].split("__")
-                filename = temp[0]
-                filesize = temp[1]
-
-                self.send_command("READY TO RECEIVE")
-
-                self.receive_file(filename, filesize)
-            else:
-                # Handle other commands
-                self.handle_command(data)
+            self.handle_command(data)
         
         self.socket.close()
         asyncio.run(self.onConnectionClosed.notify(self))
@@ -72,7 +61,14 @@ class TCPConnection:
         self.socket.send(command.encode())
 
     def handle_command(self, command):
-        logging.info(f"Received TCP command '{command}' from {self.socket.getpeername()[0]}")
+        logging.info(f"{self.linkType}: Received TCP command '{command}' from {self.socket.getpeername()[0]}")
+
+        if "FILE" in command:
+            logging.debug(f"{self.linkType}: Proceeding FILE request {command}")
+            temp = command.split(' ', 1)[1].split("__")
+            filename = temp[0]
+            filesize = temp[1]
+            return
         
         if "DIDENTIFY" in command:
             nick = command.split()[1]
@@ -92,44 +88,45 @@ class TCPConnection:
                 self.send_command(f"{request}: {nick}")
                 return
             
-            logging.info("Max AUTH retransmissions received, ingoring IDENTIFY procedure")
+            logging.info("{self.linkType}: Max AUTH retransmissions received, ingoring IDENTIFY procedure")
             return
 
     async def send_file(self, filename):
-        with self.lock:
-            self.isSendingData = True
+        pass
+        # with self.lock:
+        #     self.isSendingData = True
 
-        logging.debug(f"Sending file '{filename}'")
-        filesize = os.path.getsize(filename)
-        name = os.path.basename(filename)
-        self.send_command(f"FILE {name}__{filesize}")
+        # logging.debug(f"Sending file '{filename}'")
+        # filesize = os.path.getsize(filename)
+        # name = os.path.basename(filename)
+        # self.send_command(f"FILE {name}__{filesize}")
 
-        try:
-            data = self.socket.recv(1024).decode()
-            if data.startswith("READY TO RECEIVE"):
-                logging.debug(f"Received READY TO RECEIVE")
-        except socket.timeout:
-            pass
+        # try:
+        #     data = self.socket.recv(1024).decode()
+        #     if data.startswith("READY TO RECEIVE"):
+        #         logging.debug(f"Received READY TO RECEIVE")
+        # except socket.timeout:
+        #     pass
         
-        start_time = time.time()
+        # start_time = time.time()
 
-        with open(filename, "rb") as file:
-            for data in file:
-                self.socket.send(data)
+        # with open(filename, "rb") as file:
+        #     for data in file:
+        #         self.socket.send(data)
 
-        end_time = time.time()
-        execution_time = end_time - start_time
-        tput = int(filesize) / 1024 / 1024 / execution_time
+        # end_time = time.time()
+        # execution_time = end_time - start_time
+        # tput = int(filesize) / 1024 / 1024 / execution_time
 
-        execution_time = round(execution_time, 2)
-        tput = round(tput, 2)
+        # execution_time = round(execution_time, 2)
+        # tput = round(tput, 2)
 
-        logging.info(f"Sent file '{name}' in {execution_time} seconds, {tput} MB/s")
+        # logging.info(f"Sent file '{name}' in {execution_time} seconds, {tput} MB/s")
 
-        with self.lock:
-            self.isSendingData = False
+        # with self.lock:
+        #     self.isSendingData = False
 
-        return {"tput": tput, "execution_time": execution_time}
+        # return {"tput": tput, "execution_time": execution_time}
 
     def receive_file(self, filename, filesize):
         logging.debug(f"Receiving file '{filename}'")
@@ -193,14 +190,33 @@ class TCPSession:
     def send_command(self, command):
         self.controlLink.send_command(command)
 
-    def send_file(self, filename):
+    async def send_file(self, filename):
         with self.lock:
             self.isSendingData = True
 
-        # TODO: missing implementation
+        logging.debug(f"Sending file '{filename}'")
+        filesize = os.path.getsize(filename)
+        name = os.path.basename(filename)
+
+        start_time = time.time()
+
+        # TODO: start imp
+        self.send_command(f"FILE {name}__{filesize}")
+        # TODO: stop imp
+
+        end_time = time.time()
+        execution_time = end_time - start_time
+        tput = int(filesize) / 1024 / 1024 / execution_time
+
+        execution_time = round(execution_time, 2)
+        tput = round(tput, 2)
+
+        logging.info(f"Sent file '{name}' in {execution_time} seconds, {tput} MB/s")
 
         with self.lock:
             self.isSendingData = False
+
+        return {"tput": tput, "execution_time": execution_time}
 
 class TCPServer:
     def __init__(self, host, port):
@@ -223,7 +239,7 @@ class TCPServer:
             client_socket, client_address = self.server_socket.accept()
             client_socket.settimeout(5)
             logging.info(f"New TCP connection from {client_address[0]}:{client_address[1]}")
-            tcp_connection = TCPConnection(client_socket, TCPConnection.LinkType.CONTROL)
+            tcp_connection = TCPConnection(client_socket, TCPConnection.LinkType.UNKNOWN)
             tcp_connection.onConnectionClosed.subscribe(self.tcpConnection_onConnectionClosed)
             tcp_connection.onIdentifyCommandReceived.subscribe(self.tpcConnection_onIdentifyCommandReceived)
             self.clients.append(tcp_connection)

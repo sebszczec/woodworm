@@ -58,6 +58,7 @@ class Woodworm:
                 tg.create_task(self.tcp_server.listen(0.0))
                 tg.create_task(self.ftp.start())
         else:
+            self.ftp.startT()
             while True:
                 await self.irc_connection.listen_step(0.0)
                 await self.tcp_server.listen_step(0.0)
@@ -158,13 +159,11 @@ class Woodworm:
             await irc_connection.send_query(nickname, f"Bot {receiver} has no active connections")
             return  
 
-        connection = tcpSession.get_data_link()
-
-        if connection.is_sending_data():
+        if tcpSession.isSendingData:
             await irc_connection.send_query(nickname, f"Bot {receiver} is busy")
             return
 
-        result = await connection.send_file(file_path)
+        result = await tcpSession.send_file(file_path)
         await irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {result['execution_time']} seconds, {result['tput']} MB/s")
 
 
@@ -199,7 +198,7 @@ class Woodworm:
     async def list_files(self):
         files = []
         try:
-            files = await asyncio.to_thread(os.listdir, self.pathToFiles)
+            files = os.listdir(self.pathToFiles)
         except Exception as e:
             logging.error(f"Error listing files: {str(e)}")
         return files
