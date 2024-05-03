@@ -181,7 +181,6 @@ class Woodworm:
         for bot in self.botnetDB.get_bots().values():
             info = f"BOT: {bot.get_ircNick()} {bot.get_ip()}:{bot.get_port()}"
             tcpSession = bot.get_tcp_session()
-            logging.critical(f"DUPA {tcpSession.isActive}")
             if tcpSession.isActive:
                 info += f" TCP connection: [active]"
             else:

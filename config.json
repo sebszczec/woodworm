@@ -4,7 +4,7 @@
         "tcpPort": 3000
     },
     "irc": {
-        "nick": "woodworm0",
+        "nick": "woodworm1",
         "channel": "#vorest",
         "domain": "slaugh.pl",
         "server": "slaugh.pl",
