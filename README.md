@@ -37,3 +37,10 @@ Scenario: <i>woodworm A</i> <--> <i>woodworm B</i>
 </ul>
 
 Scenario: <i>woodworm A</i> --> <i>woodworm B</i>
+<ul>
+  <li>Client A is connected to server B via TCP session AB</li>
+  <ul><li>Two separate connection are in this session: control and data link. First to handle commands exchange, second to handle binary data</li><li>Same time server B is connected to client A via reversed TCP session R-AB. Two links are in use as above </li></ul>
+  <li>Client B is NOT connected to server A, there is no TCP session BA</li>
+  <li>When sending a file from <i>woodworm A</i> to <i>woodworm B</i> a TCP session AB will be in use</li>
+  <li>When sending a file from <i>woodworm B</i> to <i>woodworm A</i> a TCP session R-AB will be in use</li>
+</ul>
