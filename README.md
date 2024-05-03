@@ -9,7 +9,7 @@ Description:
 </ul><br/>
 
 <b>IRC</b><br/><br/>
-Each node (<i>woodworm</i>) is connected to an IRC server and channel defined in config.cfg file. When someone joins the channel <i>woodworm</i> sends a BROADCAST message. As a response to this request all <i>woodworms</i> send SPREAD message containing their IP and TCP server port they host; <i>woodworms</i> store this data in internal bot database. <br />
+Each node (<i>woodworm</i>) is connected to an IRC server and channel defined in config.cfg file. When someone joins the channel <i>woodworm</i> sends a BROADCAST message. As a response to this request all <i>woodworms</i> send SPREAD message containing their IP and TCP server port they host; <i>woodworms</i> store this data in internal botnet database. <br />
 IRC JOIN -> BROADCAST -> SPREAD -> store bot information <br/><br/>
 
 When someone quits channel <i>woodworm</i> checks if this is a bot in his database, if so - it removes it.<br/>
