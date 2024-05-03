@@ -18,11 +18,16 @@ IRC PART/QUIT -> remove bot information <br /><br />
 IRC commands handled by <i>woodworm</i> when asked directly:
 <ul>
   <li>HELP - list of available commands</li>
-  <li>LS - list of file in storage (storage directory is defined in config.cfg gile)</li>
+  <li>LS - list of file in storage (storage directory is defined in config.cfg file)</li>
   <li>STAT file - prints file details</li>
   <li>STATUS - list of bots stored in botnet database</li>
   <li>SEND bot file - send a file to a bot using TCP connection</li>
 </ul><br />
 
 <b>TCP</b><br /><br />
-Each <i>woodworm</i> is both: a TCP server and a client to all other <i>woodworms</i> TCP servers stored in botnet database.
+Each <i>woodworm</i> is both: a TCP server and a TCP client to all other <i>woodworms</i> TCP servers stored in botnet database. Connection from client to server (C->S) is called TCP session and it consists of two seperate TCP socket connections: one for commands, other for binary data transfer. Connection from server to connected client (S->C) is called a reversed TCP session and allows TCP data handling if other way around is impossible.<br /><br />
+Scenario: <i>woodworm A</i> <--> <i>woodworm B</i>
+<ul>
+  <li>A client is connected to server B via TCP sessions AB</li>
+  <li><ul><li>Two separate connection are in this session: control and data link. First to handle commands exchange, second to hadnle binary data</li><li>Same time B server is connected to client A via reversed TCP session R-AB </li></ul></li>
+</ul>
