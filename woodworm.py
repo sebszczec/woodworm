@@ -8,6 +8,7 @@ import socket
 import os
 import datetime
 from ftp import ftp_services
+from web import http_services
 import logging
 
 
@@ -43,6 +44,7 @@ class Woodworm:
         self.irc_connection.onCommandSEND.subscribe(self.irc_onCommandSEND)
         self.irc_connection.onCommandHELP.subscribe(self.irc_onCommandHELP)
         self.irc_connection.onCommandSTATUS.subscribe(self.irc_onCommandSTATUS)
+        self.irc_connection.onCommandWGET.subscribe(self.irc_onCommandWGET)
         
         self.ftp = ftp_services.FTPServer(self.my_ip, self.ftpPort, self.ftpUser, self.ftpPassword, self.ftpPassiveRange, self.pathToFiles)
 
@@ -193,6 +195,16 @@ class Woodworm:
                 info += f" Reversed TCP connection: [inactive]"
             
             await irc_connection.send_query(nickname, info)
+
+    async def irc_onCommandWGET(self, *args, **kwargs):
+        irc_connection = args[0]
+        nickname = kwargs.get('nickname')
+        url = kwargs.get('url')
+        filename = url.split('/')[-1]
+        
+        downloader = http_services.FileDownloader(url)
+        await downloader.download_file(os.path.join(self.pathToFiles, filename))
+        await irc_connection.send_query(nickname, f"Download of {url} started")
 
 
     async def list_files(self):

@@ -23,7 +23,7 @@ class IRCConnection:
         self.onCommandSEND = event.Event()
         self.onCommandHELP = event.Event()
         self.onCommandSTATUS = event.Event()
-
+        self.onCommandWGET = event.Event()
 
 
     async def connect(self):
@@ -81,6 +81,8 @@ class IRCConnection:
         buffer = received.split("\r\n")
         
         for ircmsg in buffer:
+            logging.info(ircmsg)
+
             if ircmsg.startswith("PING :"):
                 await self.handle_ping()
                 continue
@@ -88,7 +90,6 @@ class IRCConnection:
             if self.isConnected is False and ("End of /MOTD command" in ircmsg or "376" in ircmsg):
                 self.isConnected = True
                 await self.onConnected.notify(self)
-                logging.info(ircmsg)
                 continue
 
             await self.handle_channel_commands(ircmsg)
@@ -96,7 +97,7 @@ class IRCConnection:
             if "PRIVMSG" in ircmsg:
                 await self.handle_priv_message(ircmsg)
 
-            logging.info(ircmsg)
+            
 
 
     async def listen(self, delay):
@@ -119,8 +120,6 @@ class IRCConnection:
 
         if "JOIN" in ircmsg:
             await self.handle_join()
-
-        return False
 
 
     async def handle_ping(self):
@@ -197,6 +196,15 @@ class IRCConnection:
                 logging.error("Error parsing STAT command")
                 return
             await self.onCommandSTAT.notify(self, filename=filename, nickname=nickname)
+            return
+        
+        if "WGET" in command:
+            try:
+                url = command.split('WGET', 1)[1].split(' ', 1)[1]
+            except:
+                logging.error("Error parsing WGET command")
+                return
+            await self.onCommandWGET.notify(self, url=url, nickname=nickname)
             return
 
 
