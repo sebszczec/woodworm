@@ -204,11 +204,12 @@ class Woodworm:
         savePath = os.path.join(self.pathToFiles, filename)
         
         downloader = http_services.FileDownloader(url, nickname)
-        downloader.onDownloadCompeted.subscribe(self.downloader_onDownloadCompleted)
+        downloader.onDownloadCompleted.subscribe(self.downloader_onDownloadCompleted)
+        downloader.onDownloadProgress.subscribe(self.downloader_onDownloadProgress)
 
         download_thread = asyncio.to_thread(downloader.download_file, savePath)
         task = asyncio.create_task(download_thread)
-        await irc_connection.send_query(nickname, f"Download of {url} started")
+        await irc_connection.send_query(nickname, f"Downloading of {url} started")
 
 
     async def downloader_onDownloadCompleted(self, *args, **kwargs):
@@ -219,6 +220,17 @@ class Woodworm:
         tput = kwargs.get('tput')
         time = kwargs.get('time')
         await irc_connection.send_query(nickname, f"File {filename} downloaded successfully. Size: {filesize} MB, Time: {time} s, Throughput: {tput} MB/s")
+
+
+    async def downloader_onDownloadProgress(self, *args, **kwargs):
+        irc_connection = self.irc_connection
+        nickname = kwargs.get('owner')
+        filename = kwargs.get('filename')
+        progress = kwargs.get('progress')
+        tput = kwargs.get('tput')
+        progress_size = kwargs.get('progress_size')
+        full_size = kwargs.get('full_size')
+        await irc_connection.send_query(nickname, f"Downloading {filename}: {progress}%, {progress_size} out of {full_size} MB, Throughput: {tput} MB/s")
 
 
     async def list_files(self):

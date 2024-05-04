@@ -39,6 +39,7 @@ class TCPConnection:
 
     def start(self):
         connection_thread = asyncio.to_thread(self.handle_data)
+        task = asyncio.create_task(connection_thread)
 
     def handle_data(self):
         while True:
