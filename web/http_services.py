@@ -24,9 +24,14 @@ class FileDownloader:
             
             end_time = time.time()
             execution_time = end_time - start_time
-            tput = size / 1024 / 1024 / execution_time
+            size = size / 1024 / 1024
+            tput = size/ execution_time
 
-            logging.info(f"File {self.url} downloaded successfully. Size: {size}, Time: {execution_time}, Throughput: {tput} MB/s")
+            size = round(size, 2)
+            execution_time = round(execution_time, 2)
+            tput = round(tput, 2)
+
+            logging.info(f"File {self.url} downloaded successfully. Size: {size} MB, Time: {execution_time} s, Throughput: {tput} MB/s")
             asyncio.run(self.onDownloadCompeted.notify(owner = self.owner, filename=self.url, filesize = size, tput = tput, time = execution_time))
             return
         

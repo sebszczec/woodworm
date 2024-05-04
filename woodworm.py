@@ -218,7 +218,7 @@ class Woodworm:
         filesize = kwargs.get('filesize')
         tput = kwargs.get('tput')
         time = kwargs.get('time')
-        await irc_connection.send_query(nickname, f"File {filename} downloaded successfully. Size: {filesize}, Time: {time}, Throughput: {tput} MB/s")
+        await irc_connection.send_query(nickname, f"File {filename} downloaded successfully. Size: {filesize} MB, Time: {time} s, Throughput: {tput} MB/s")
 
 
     async def list_files(self):
