@@ -39,7 +39,6 @@ class TCPConnection:
 
     def start(self):
         connection_thread = asyncio.to_thread(self.handle_data)
-        task = asyncio.create_task(connection_thread)
 
     def handle_data(self):
         while True:
@@ -171,7 +170,7 @@ class TCPSession:
     def send_command(self, command):
         self.controlLink.send_command(command)
 
-    async def send_file(self, filename):
+    def send_file(self, filename):
         with self.lock:
             self.isSendingData = True
 

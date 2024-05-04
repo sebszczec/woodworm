@@ -165,7 +165,7 @@ class Woodworm:
             await irc_connection.send_query(nickname, f"Bot {receiver} is busy")
             return
 
-        result = await tcpSession.send_file(file_path)
+        result = tcpSession.send_file(file_path)
         await irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {result['execution_time']} seconds, {result['tput']} MB/s")
 
 
@@ -201,10 +201,24 @@ class Woodworm:
         nickname = kwargs.get('nickname')
         url = kwargs.get('url')
         filename = url.split('/')[-1]
+        savePath = os.path.join(self.pathToFiles, filename)
         
-        downloader = http_services.FileDownloader(url)
-        await downloader.download_file(os.path.join(self.pathToFiles, filename))
+        downloader = http_services.FileDownloader(url, nickname)
+        downloader.onDownloadCompeted.subscribe(self.downloader_onDownloadCompleted)
+
+        download_thread = asyncio.to_thread(downloader.download_file, savePath)
+        task = asyncio.create_task(download_thread)
         await irc_connection.send_query(nickname, f"Download of {url} started")
+
+
+    async def downloader_onDownloadCompleted(self, *args, **kwargs):
+        irc_connection = self.irc_connection
+        nickname = kwargs.get('owner')
+        filename = kwargs.get('filename')
+        filesize = kwargs.get('filesize')
+        tput = kwargs.get('tput')
+        time = kwargs.get('time')
+        await irc_connection.send_query(nickname, f"File {filename} downloaded successfully. Size: {filesize}, Time: {time}, Throughput: {tput} MB/s")
 
 
     async def list_files(self):
