@@ -59,7 +59,7 @@ if __name__ == "__main__":
     path = '/home/slaugh/Downloads/d1'
     savePath = os.path.join(path, filename)
 
-    downloader = http_services.FileDownloader("Fdsfsd", "me")
+    downloader = http_services.FileDownloader(url, "me")
     downloader.onDownloadCompleted.subscribe(downloader_onDownloadCompleted)
     downloader.onDownloadProgress.subscribe(downloader_onDownloadProgress)
     downloader.download_file(savePath)

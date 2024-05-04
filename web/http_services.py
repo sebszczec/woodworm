@@ -23,6 +23,7 @@ class FileDownloader:
 
         if response.status_code == 200:
             source_size = int(response.headers.get('Content-Length', 0))
+            full_size = round(source_size / 1024 / 1024, 2)
             trackProgress = False
             divider = 0
             
@@ -43,22 +44,19 @@ class FileDownloader:
                         tput = progress_size / execution_time
                         tput = round(tput, 2)
                         progress_size = round(progress_size, 2)
-                        full_size = round(source_size / 1024 / 1024, 2)
-
+                        
                         asyncio.run(self.onDownloadProgress.notify(owner=self.owner, filename=self.url, progress=progress, tput=tput, progress_size=progress_size, full_size=full_size))
                         divider += source_size / 10
             
             end_time = time.time()
             execution_time = end_time - start_time
-            size = size / 1024 / 1024
-            tput = size/ execution_time
+            tput = source_size / 1024 / 1024 / execution_time
 
-            size = round(size, 2)
             execution_time = round(execution_time, 2)
             tput = round(tput, 2)
 
             logging.info(f"File {self.url} downloaded successfully. Size: {size} MB, Time: {execution_time} s, Throughput: {tput} MB/s")
-            asyncio.run(self.onDownloadCompleted.notify(owner = self.owner, filename=self.url, filesize = size, tput = tput, time = execution_time))
+            asyncio.run(self.onDownloadCompleted.notify(owner = self.owner, filename=self.url, filesize = full_size, tput = tput, time = execution_time))
             return
         
         logging.error(f"Failed to download {self.url} file.")
