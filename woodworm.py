@@ -6,6 +6,7 @@ from botnet import botnet_database
 from botnet.tcp import tcp_services
 import socket
 import os
+import sys
 import datetime
 from ftp import ftp_services
 from web import http_services
@@ -45,6 +46,7 @@ class Woodworm:
         self.irc_connection.onCommandHELP.subscribe(self.irc_onCommandHELP)
         self.irc_connection.onCommandSTATUS.subscribe(self.irc_onCommandSTATUS)
         self.irc_connection.onCommandWGET.subscribe(self.irc_onCommandWGET)
+        self.irc_connection.onCommandSHUTDOWN.subscribe(self.irc_onCommandSHUTDOWN)
         
         self.ftp = ftp_services.FTPServer(self.my_ip, self.ftpPort, self.ftpUser, self.ftpPassword, self.ftpPassiveRange, self.pathToFiles)
 
@@ -93,6 +95,8 @@ class Woodworm:
                 bot.set_tcp_session(tcpSession)
                 bot.get_tcp_session().get_data_link().set_download_path(self.pathToFiles)
                 bot.get_tcp_session().identify(self.ircNick)
+                bot.get_tcp_session().onSendingFinished.subscribe(self.tcp_Session_onSendingFinished)
+                bot.get_reversed_tcp_session().onSendingFinished.subscribe(self.tcp_Session_onSendingFinished)
             else:
                 logging.error(f"Failed to TCP connect to bot: nick: {nick}, ip: {ip} port: {port}")
                                  
@@ -165,8 +169,9 @@ class Woodworm:
             await irc_connection.send_query(nickname, f"Bot {receiver} is busy")
             return
 
-        result = tcpSession.send_file(file_path)
-        await irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {result['execution_time']} seconds, {result['tput']} MB/s")
+        coro = asyncio.to_thread(tcpSession.send_file, file_path, owner=nickname, receiver=receiver)
+        task = asyncio.create_task(coro)
+        # await irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {result['execution_time']} seconds, {result['tput']} MB/s")
 
 
     async def irc_onCommandHELP(self, *args, **kwargs):
@@ -196,6 +201,7 @@ class Woodworm:
             
             await irc_connection.send_query(nickname, info)
 
+
     async def irc_onCommandWGET(self, *args, **kwargs):
         irc_connection = args[0]
         nickname = kwargs.get('nickname')
@@ -210,6 +216,14 @@ class Woodworm:
         download_thread = asyncio.to_thread(downloader.download_file, savePath)
         task = asyncio.create_task(download_thread)
         await irc_connection.send_query(nickname, f"Downloading of {url} started")
+
+
+    async def irc_onCommandSHUTDOWN(self, *args, **kwargs):
+        irc_connection = args[0]
+        nickname = kwargs.get('nickname')
+        await irc_connection.send_query(nickname, "Shutting down...")
+        await asyncio.sleep(1)
+        quit(0)
 
 
     async def downloader_onDownloadCompleted(self, *args, **kwargs):
@@ -287,6 +301,15 @@ class Woodworm:
             tcpReversedSession.set_control_link(connection)
 
         logging.info(f"Reverse {linkType} connection established with nick: {nick}")
+
+
+    async def tcp_Session_onSendingFinished(self, *args, **kwargs):
+        filename = kwargs.get('filename')
+        nickname = kwargs.get('owner')
+        receiver = kwargs.get('receiver')
+        tput = kwargs.get('tput')
+        execution_time = kwargs.get('execution_time')
+        await self.irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {execution_time} seconds, {tput} MB/s")
 
 
     async def another_loop(self):

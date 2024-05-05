@@ -24,6 +24,7 @@ class IRCConnection:
         self.onCommandHELP = event.Event()
         self.onCommandSTATUS = event.Event()
         self.onCommandWGET = event.Event()
+        self.onCommandSHUTDOWN = event.Event()
 
 
     async def connect(self):
@@ -205,6 +206,10 @@ class IRCConnection:
                 logging.error("Error parsing WGET command")
                 return
             await self.onCommandWGET.notify(self, url=url, nickname=nickname)
+            return
+        
+        if "SHUTDOWN" in command:
+            await self.onCommandSHUTDOWN.notify(self, nickname=nickname)
             return
 
 

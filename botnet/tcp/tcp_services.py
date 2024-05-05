@@ -141,6 +141,7 @@ class TCPSession:
         self.isActive = False
         self.isSendingData = False
         self.lock = threading.Lock()
+        self.onSendingFinished = event.Event()
 
     def set_data_link(self, dataLink : TCPConnection):
         self.dataLink = dataLink
@@ -171,7 +172,7 @@ class TCPSession:
     def send_command(self, command):
         self.controlLink.send_command(command)
 
-    def send_file(self, filename):
+    def send_file(self, filename, *args, **kwargs):
         with self.lock:
             self.isSendingData = True
 
@@ -199,7 +200,7 @@ class TCPSession:
         with self.lock:
             self.isSendingData = False
 
-        return {"tput": tput, "execution_time": execution_time}
+        asyncio.run(self.onSendingFinished.notify(self, filename=name, tput=tput, execution_time=execution_time, *args, **kwargs))
 
 class TCPServer:
     def __init__(self, host, port):
