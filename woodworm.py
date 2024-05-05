@@ -228,7 +228,7 @@ class Woodworm:
         downloader.onDownloadCompleted.subscribe(self.downloader_onDownloadCompleted)
         downloader.onDownloadProgress.subscribe(self.downloader_onDownloadProgress)
 
-        thread = threading.Thread(target=downloader.download_file, kwargs={'savePath' : savePath, 'nickname' : nickname})
+        thread = threading.Thread(target=downloader.download_file, args=(filename,), kwargs={'nickname' : nickname})
         thread.start()
         irc_connection.send_query(nickname, f"Downloading of {url} started")
 

@@ -183,6 +183,7 @@ class TCPSession:
         name = os.path.basename(filename)
 
         start_time = time.time()
+        progress_start_time = start_time
 
         self.send_command(f"CFILE {name}__{filesize}")
 
@@ -201,7 +202,8 @@ class TCPSession:
                 if trackProgress and size >= divider:
                     progress = int((size / filesize) * 100)
                     end_time = time.time()
-                    execution_time = end_time - start_time
+                    execution_time = end_time - progress_start_time
+                    progress_start_time = end_time
                     progress_size = size / 1024 / 1024
                     tput = progress_size / execution_time
                     tput = round(tput, 2)

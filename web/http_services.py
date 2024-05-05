@@ -10,8 +10,10 @@ class FileDownloader:
         self.onDownloadProgress = event.Event()
 
 
-    def download_file(self, **kwargs):
+    def download_file(self, savePath, **kwargs):
         start_time = time.time()
+        progress_start_time = start_time
+        last_progress_size = 0
         try:
             response = requests.get(self.url, stream=True)
         except requests.exceptions.RequestException as e:
@@ -21,15 +23,15 @@ class FileDownloader:
 
         if response.status_code == 200:
             source_size = int(response.headers.get('Content-Length', 0))
-            full_size = round(source_size / 1024 / 1024, 2)
+            full_size = source_size / 1024 / 1024
             trackProgress = False
             divider = 0
+            progress_step = 0
             
             if source_size >= 104857600: # 100MB
                 trackProgress = True
                 divider = source_size / 10
-
-            savePath = kwargs.get('savePath')
+                progress_step = divider
 
             with open(savePath, 'wb') as file:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -38,25 +40,30 @@ class FileDownloader:
 
                     if trackProgress and size >= divider:
                         progress = int((size / source_size) * 100)
+                        tmpSize = size / 1024 / 1024
                         end_time = time.time()
-                        execution_time = end_time - start_time
-                        progress_size = size / 1024 / 1024
-                        tput = progress_size / execution_time
-                        tput = round(tput, 2)
-                        progress_size = round(progress_size, 2)
+                        execution_time = end_time - progress_start_time
+                        progress_size = tmpSize - last_progress_size
+
+                        progress_start_time = end_time
+                        last_progress_size = tmpSize
                         
-                        self.onDownloadProgress.notify(filename=self.url, progress=progress, tput=tput, progress_size=progress_size, full_size=full_size, **kwargs)
-                        divider += source_size / 10
+                        tput = progress_size / execution_time   
+                        tput = round(tput, 2)
+                        progress_size = round(progress_size, 2)   
+                        
+                        self.onDownloadProgress.notify(filename=self.url, progress=progress, tput=tput, progress_size=progress_size, full_size=round(full_size, 2), **kwargs)
+                        divider += progress_step
             
             end_time = time.time()
             execution_time = end_time - start_time
-            tput = source_size / 1024 / 1024 / execution_time
+            tput = full_size / execution_time
 
             execution_time = round(execution_time, 2)
             tput = round(tput, 2)
 
             logging.info(f"File {self.url} downloaded successfully. Size: {size} MB, Time: {execution_time} s, Throughput: {tput} MB/s")
-            self.onDownloadCompleted.notify(filename=self.url, filesize = full_size, tput = tput, time = execution_time, **kwargs)
+            self.onDownloadCompleted.notify(filename=self.url, filesize = round(full_size, 2), tput = tput, time = execution_time, **kwargs)
             return
         
         logging.error(f"Failed to download {self.url} file.")
