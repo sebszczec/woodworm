@@ -30,9 +30,9 @@ class Context:
     def get_reversed_tcp_session(self):
         return self.TcpReversedSession
 
-    async def onConnectionClosed(self, *args, **kwargs):
+    def onConnectionClosed(self, *args, **kwargs):
         self.TcpSession = None
 
-    async def onReversedConnectionClosed(self, *args, **kwargs):
+    def onReversedConnectionClosed(self, *args, **kwargs):
         self.TcpReversedConnection = None
 

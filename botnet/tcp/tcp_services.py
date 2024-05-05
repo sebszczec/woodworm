@@ -1,7 +1,6 @@
 import socket
 import threading
 import os
-import asyncio
 from tools import event
 import time
 import logging
@@ -38,8 +37,8 @@ class TCPConnection:
             return self.isSendingData
 
     def start(self):
-        connection_thread = asyncio.to_thread(self.handle_data)
-        task = asyncio.create_task(connection_thread)
+        thread = threading.Thread(target=self.handle_data)
+        thread.start()
 
     def handle_data(self):
         while True:
@@ -58,7 +57,7 @@ class TCPConnection:
             self.handle_command(data)
         
         self.socket.close()
-        asyncio.run(self.onConnectionClosed.notify(self))
+        self.onConnectionClosed.notify(self)
 
     def send_command(self, command):
         self.socket.send(command.encode())
@@ -76,12 +75,12 @@ class TCPConnection:
         
         if "DIDENTIFY" in command:
             nick = command.split()[1]
-            asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick, linkType=TCPConnection.LinkType.DATA))
+            self.onIdentifyCommandReceived.notify(self, sender=nick, linkType=TCPConnection.LinkType.DATA)
             return
         
         if "CIDENTIFY" in command:
             nick = command.split()[1]
-            asyncio.run(self.onIdentifyCommandReceived.notify(self, sender=nick, linkType=TCPConnection.LinkType.CONTROL))
+            self.onIdentifyCommandReceived.notify(self, sender=nick, linkType=TCPConnection.LinkType.CONTROL)
             return
         
         if "DAUTH-REQ" in command or "CAUTH-REQ" in command:
@@ -166,7 +165,7 @@ class TCPSession:
         self.controlLink.send_command(f"CIDENTIFY {ircNick}")
         pass
 
-    async def onConnectionClosed(self, *args, **kwargs):
+    def onConnectionClosed(self, *args, **kwargs):
         logging.debug(f"TCP connection close detected, closing session")
         self.isActive = False
 
@@ -174,7 +173,6 @@ class TCPSession:
         self.controlLink.send_command(command)
 
     def send_file(self, **kwargs):
-        logging.critical(f"DUPA before LOCK {kwargs.get('receiver')}")
         with self.lock:
             self.isSendingData = True
 
@@ -210,7 +208,7 @@ class TCPSession:
                     progress_size = round(progress_size, 2)
                     
                     # logging.critical(f"SENDING FILE to {kwargs.get('receiver')}")
-                    asyncio.run(self.onSendingProgress.notify(file=name, progress=progress, tput=tput, progress_size=progress_size, full_size=round(report_filesize, 2), **kwargs))
+                    self.onSendingProgress.notify(file=name, progress=progress, tput=tput, progress_size=progress_size, full_size=round(report_filesize, 2), **kwargs)
                     divider += filesize / 10
 
         end_time = time.time()
@@ -226,7 +224,7 @@ class TCPSession:
             self.isSendingData = False
 
         # logging.critical(f"FILE SENT to {kwargs.get('receiver')}")
-        asyncio.run(self.onSendingFinished.notify(self, file=name, tput=tput, execution_time=execution_time, **kwargs))
+        self.onSendingFinished.notify(self, file=name, tput=tput, execution_time=execution_time, **kwargs)
 
 class TCPServer:
     def __init__(self, host, port):
@@ -236,14 +234,14 @@ class TCPServer:
         self.clients = []
         self.onConnectionRegistered = event.Event()
 
-    async def start(self):
+    def start(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(5)
         logging.info(f"TCP Server started on {self.host}:{self.port}")
 
-    async def listen_step(self, delay):
-        await asyncio.sleep(delay)
+    def listen_step(self, delay):
+        time.sleep(delay)
         self.server_socket.settimeout(1)
         try:
             client_socket, client_address = self.server_socket.accept()
@@ -257,22 +255,22 @@ class TCPServer:
         except socket.timeout:
             return
 
-    async def listen(self, delay):
+    def listen(self, delay):
         logging.info("Listening for incoming TCP connections")
         while True:
-            await self.listen_step(delay)
+            self.listen_step(delay)
 
-    async def tcpConnection_onConnectionClosed(self, *args, **kwargs):
+    def tcpConnection_onConnectionClosed(self, *args, **kwargs):
         connection = args[0]
         info = connection.get_socket_info()
         logging.info(f"TCP connection {info[0]}:{info[1]} closed")
         self.clients.remove(connection)
 
-    async def tpcConnection_onIdentifyCommandReceived(self, *args, **kwargs):
+    def tpcConnection_onIdentifyCommandReceived(self, *args, **kwargs):
         connection = args[0]
         sender = kwargs.get("sender")
         linkType = kwargs.get("linkType")
-        await self.onConnectionRegistered.notify(self, connection=connection, sender=sender, linkType=linkType)
+        self.onConnectionRegistered.notify(self, connection=connection, sender=sender, linkType=linkType)
     
 
 class TCPClient:
@@ -280,7 +278,7 @@ class TCPClient:
         self.host = host
         self.port = port
 
-    async def __connect(self):
+    def __connect(self):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.settimeout(5)
         try:
@@ -295,9 +293,9 @@ class TCPClient:
         
         return client_socket
 
-    async def connect(self):
-        data_link_socket = await self.__connect()
-        control_link_socket = await self.__connect()
+    def connect(self):
+        data_link_socket = self.__connect()
+        control_link_socket = self.__connect()
 
         if data_link_socket is None or control_link_socket is None:
             return None 

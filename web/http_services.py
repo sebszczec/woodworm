@@ -1,7 +1,6 @@
 import requests
 import logging
 import time
-import asyncio
 from tools import event
 
 class FileDownloader:
@@ -11,7 +10,7 @@ class FileDownloader:
         self.onDownloadProgress = event.Event()
 
 
-    def download_file(self, save_path, **kwargs):
+    def download_file(self, **kwargs):
         start_time = time.time()
         try:
             response = requests.get(self.url, stream=True)
@@ -30,8 +29,9 @@ class FileDownloader:
                 trackProgress = True
                 divider = source_size / 10
 
+            savePath = kwargs.get('savePath')
 
-            with open(save_path, 'wb') as file:
+            with open(savePath, 'wb') as file:
                 for chunk in response.iter_content(chunk_size=8192):
                     file.write(chunk)
                     size = size + len(chunk)
@@ -44,7 +44,7 @@ class FileDownloader:
                         tput = round(tput, 2)
                         progress_size = round(progress_size, 2)
                         
-                        asyncio.run(self.onDownloadProgress.notify(filename=self.url, progress=progress, tput=tput, progress_size=progress_size, full_size=full_size, **kwargs))
+                        self.onDownloadProgress.notify(filename=self.url, progress=progress, tput=tput, progress_size=progress_size, full_size=full_size, **kwargs)
                         divider += source_size / 10
             
             end_time = time.time()
@@ -55,7 +55,7 @@ class FileDownloader:
             tput = round(tput, 2)
 
             logging.info(f"File {self.url} downloaded successfully. Size: {size} MB, Time: {execution_time} s, Throughput: {tput} MB/s")
-            asyncio.run(self.onDownloadCompleted.notify(filename=self.url, filesize = full_size, tput = tput, time = execution_time, **kwargs))
+            self.onDownloadCompleted.notify(filename=self.url, filesize = full_size, tput = tput, time = execution_time, **kwargs)
             return
         
         logging.error(f"Failed to download {self.url} file.")

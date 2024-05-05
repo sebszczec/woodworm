@@ -19,15 +19,8 @@ class FTPServer(threading.Thread):
         handler = FTPHandler
         handler.passive_ports = self.passiveRange
         handler.authorizer.add_user(self.username, self.password, self.filesPath, perm='elradfmwMT')
-        server = servers.FTPServer((self.host, self.port), handler)
-        # server = servers.ThreadedFTPServer((self.host, self.port), handler)
+        # server = servers.FTPServer((self.host, self.port), handler)
+        server = servers.ThreadedFTPServer((self.host, self.port), handler)
         server.serve_forever()
 
-    def startT(self):
-        thread = threading.Thread(target=self.run)
-        thread.start()
-
-    async def start(self):        
-        service = asyncio.to_thread(self.run)
-        task = asyncio.create_task(service)
 

@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     worm = woodworm.Woodworm(config)
     try:
-        asyncio.run(worm.start(debug=False))   
+        worm.start(False) 
     except Exception as e:
         logger.critical(f"Unhandled exception: {str(e)}")
         sys.exit(1)

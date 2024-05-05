@@ -1,5 +1,5 @@
 import socket
-import asyncio
+from time import sleep
 from tools import event
 import logging
 
@@ -27,7 +27,7 @@ class IRCConnection:
         self.onCommandSHUTDOWN = event.Event()
 
 
-    async def connect(self):
+    def connect(self):
         self.IRC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.IRC.connect((self.server, self.port))
 
@@ -39,35 +39,35 @@ class IRCConnection:
         return self.isConnected
             
 
-    async def register_user(self):        
-        await self.send_data(f'USER {self.nickname} {self.domain} {self.domain} :{self.nickname}')
-        await self.send_data(f'NICK {self.nickname}')
+    def register_user(self):        
+        self.send_data(f'USER {self.nickname} {self.domain} {self.domain} :{self.nickname}')
+        self.send_data(f'NICK {self.nickname}')
 
 
-    async def join_channel(self):        
-        await self.send_data(f'JOIN {self.channel}')
+    def join_channel(self):        
+        self.send_data(f'JOIN {self.channel}')
 
 
-    async def send_data(self, command):
+    def send_data(self, command):
         self.IRC.send(bytes(command + "\n", "UTF-8"))
 
 
-    async def send_message(self, message):
+    def send_message(self, message):
         if self.is_connected() is False:
             return
         
-        await self.send_data(f'PRIVMSG {self.channel} :{message}')
+        self.send_data(f'PRIVMSG {self.channel} :{message}')
 
     
-    async def send_query(self, nickname, message):
+    def send_query(self, nickname, message):
         if self.is_connected() is False:
             return
         
-        await self.send_data(f'PRIVMSG {nickname} :{message}')
+        self.send_data(f'PRIVMSG {nickname} :{message}')
 
 
-    async def listen_step(self, delay):
-        await asyncio.sleep(delay)
+    def listen_step(self, delay):
+        sleep(delay)
             
         self.IRC.settimeout(0.1)
         try:
@@ -85,54 +85,54 @@ class IRCConnection:
             logging.info(ircmsg)
 
             if ircmsg.startswith("PING :"):
-                await self.handle_ping()
+                self.handle_ping()
                 continue
             
             if self.isConnected is False and ("End of /MOTD command" in ircmsg or "376" in ircmsg):
                 self.isConnected = True
-                await self.onConnected.notify(self)
+                self.onConnected.notify(self)
                 continue
 
-            await self.handle_channel_commands(ircmsg)
+            self.handle_channel_commands(ircmsg)
 
             if "PRIVMSG" in ircmsg:
-                await self.handle_priv_message(ircmsg)
+                self.handle_priv_message(ircmsg)
 
             
 
 
-    async def listen(self, delay):
+    def listen(self, delay):
         while True:
-            await self.listen_step(delay)
+            self.listen_step(delay)
 
 
-    async def handle_channel_commands(self, ircmsg):
+    def handle_channel_commands(self, ircmsg):
         if "PING" in ircmsg:
-            await self.handle_ping()
+            self.handle_ping()
 
         if "BROADCAST" in ircmsg:
-            await self.handle_broadcast_request()
+            self.handle_broadcast_request()
 
         if "SPREAD" in ircmsg:
-            await self.handle_spread_detected(ircmsg)
+            self.handle_spread_detected(ircmsg)
 
         if "PART" in ircmsg or "QUIT" in ircmsg:
-            await self.handle_part(ircmsg)
+            self.handle_part(ircmsg)
 
         if "JOIN" in ircmsg:
-            await self.handle_join()
+            self.handle_join()
 
 
-    async def handle_ping(self):
-        await self.send_data("PONG :pingisn")
+    def handle_ping(self):
+        self.send_data("PONG :pingisn")
         logging.info("PONG :pingisn")
 
 
-    async def handle_broadcast_request(self):
-        await self.onBroadcastRequested.notify(self)
+    def handle_broadcast_request(self):
+        self.onBroadcastRequested.notify(self)
 
 
-    async def handle_spread_detected(self, ircmsg):
+    def handle_spread_detected(self, ircmsg):
         # logging.debug(f"{ircmsg}")
         try:
             ip = ircmsg.split("ip:")[1].split(" ")[0]
@@ -143,33 +143,33 @@ class IRCConnection:
             logging.error("Error parsing SPREAD message")
             return
 
-        await self.onSpreadDetected.notify(self, ip = ip, port = port, ircNick = ircNick)
+        self.onSpreadDetected.notify(self, ip = ip, port = port, ircNick = ircNick)
 
 
-    async def handle_part(self, ircmsg):
+    def handle_part(self, ircmsg):
         ircNick = ircmsg.split('!', 1)[0][1:]
-        await self.onSomeoneLeftChannel.notify(self, ircNick = ircNick)
+        self.onSomeoneLeftChannel.notify(self, ircNick = ircNick)
 
 
-    async def handle_join(self):
+    def handle_join(self):
         logging.debug("JOIN detected, sending BROADCAST")
-        await self.send_message("BROADCAST")
+        self.send_message("BROADCAST")
 
 
-    async def handle_priv_message(self, ircmsg):
+    def handle_priv_message(self, ircmsg):
         nickname = ircmsg.split('!', 1)[0][1:]
         message = ircmsg.split('PRIVMSG', 1)[1].split(':', 1)[1]
-        await self.handle_priv_command(nickname, message)
+        self.handle_priv_command(nickname, message)
         # logging.debug(f"Name: {nickname}, Message: {message}")
 
     
-    async def handle_priv_command(self, nickname, command):
+    def handle_priv_command(self, nickname, command):
         if "HELP" in command:
-            await self.onCommandHELP.notify(self, nickname=nickname)
+            self.onCommandHELP.notify(self, nickname=nickname)
             return
         
         if "LS" in command:
-            await self.onCommandLS.notify(self, nickname=nickname)
+            self.onCommandLS.notify(self, nickname=nickname)
             return
         
         if "SEND" in command:
@@ -181,12 +181,12 @@ class IRCConnection:
                 return
             
             logging.info(f"SEND command received: {filename} to {receiver}")
-            await self.onCommandSEND.notify(self, filename=filename, receiver=receiver, nickname=nickname)
+            self.onCommandSEND.notify(self, filename=filename, receiver=receiver, nickname=nickname)
             return
 
 
         if "STATUS" in command:
-            await self.onCommandSTATUS.notify(self, nickname=nickname)
+            self.onCommandSTATUS.notify(self, nickname=nickname)
             return
 
 
@@ -196,7 +196,7 @@ class IRCConnection:
             except:
                 logging.error("Error parsing STAT command")
                 return
-            await self.onCommandSTAT.notify(self, filename=filename, nickname=nickname)
+            self.onCommandSTAT.notify(self, filename=filename, nickname=nickname)
             return
         
         if "WGET" in command:
@@ -205,11 +205,11 @@ class IRCConnection:
             except:
                 logging.error("Error parsing WGET command")
                 return
-            await self.onCommandWGET.notify(self, url=url, nickname=nickname)
+            self.onCommandWGET.notify(self, url=url, nickname=nickname)
             return
         
         if "SHUTDOWN" in command:
-            await self.onCommandSHUTDOWN.notify(self, nickname=nickname)
+            self.onCommandSHUTDOWN.notify(self, nickname=nickname)
             return
 
 

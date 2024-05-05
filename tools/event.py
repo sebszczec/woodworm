@@ -8,9 +8,9 @@ class Event:
     def unsubscribe(self, observer):
         self._observers.remove(observer)
 
-    async def notify(self, *args, **kwargs):
+    def notify(self, *args, **kwargs):
         for observer in self._observers:
-            await observer(*args, **kwargs)
+            observer(*args, **kwargs)
 
 # Usage
 # event = Event()
