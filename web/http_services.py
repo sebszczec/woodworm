@@ -52,7 +52,7 @@ class FileDownloader:
                         tput = round(tput, 2)
                         progress_size = round(progress_size, 2)   
                         
-                        self.onDownloadProgress.notify(filename=self.url, progress=progress, tput=tput, progress_size=progress_size, full_size=round(full_size, 2), **kwargs)
+                        self.onDownloadProgress.notify(filename=self.url, progress=progress, tput=tput, progress_size=round(tmpSize, 2), full_size=round(full_size, 2), **kwargs)
                         divider += progress_step
             
             end_time = time.time()

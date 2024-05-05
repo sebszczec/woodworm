@@ -190,10 +190,13 @@ class TCPSession:
         trackProgress = False
         divider = 0
         size = 0
+        progress_step = 0
+        last_progress_size = 0
 
         if filesize >= 104857600: # 100MB
             trackProgress = True
             divider = filesize / 10
+            progress_step = divider
 
         with open(filename, "rb") as file:
             for data in file:
@@ -201,16 +204,20 @@ class TCPSession:
                 size = size + len(data)
                 if trackProgress and size >= divider:
                     progress = int((size / filesize) * 100)
+                    tmpSize = size / 1024 / 1024
                     end_time = time.time()
                     execution_time = end_time - progress_start_time
+                    progress_size = tmpSize - last_progress_size
+
                     progress_start_time = end_time
-                    progress_size = size / 1024 / 1024
-                    tput = progress_size / execution_time
-                    tput = round(tput, 2)
-                    progress_size = round(progress_size, 2)
+                    last_progress_size = tmpSize
                     
-                    self.onSendingProgress.notify(file=name, progress=progress, tput=tput, progress_size=progress_size, full_size=round(report_filesize, 2), **kwargs)
-                    divider += filesize / 10
+                    tput = progress_size / execution_time   
+                    tput = round(tput, 2)
+                    progress_size = round(progress_size, 2) 
+                    
+                    self.onSendingProgress.notify(file=name, progress=progress, tput=tput, progress_size=round(tmpSize, 2), full_size=round(report_filesize, 2), **kwargs)
+                    divider += progress_step
 
         end_time = time.time()
         execution_time = end_time - start_time
