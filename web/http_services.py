@@ -35,6 +35,7 @@ class FileDownloader:
                 for chunk in response.iter_content(chunk_size=8192):
                     file.write(chunk)
                     size = size + len(chunk)
+
                     if trackProgress and size >= divider:
                         progress = int((size / source_size) * 100)
                         end_time = time.time()

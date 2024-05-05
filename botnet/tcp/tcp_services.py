@@ -207,7 +207,6 @@ class TCPSession:
                     tput = round(tput, 2)
                     progress_size = round(progress_size, 2)
                     
-                    # logging.critical(f"SENDING FILE to {kwargs.get('receiver')}")
                     self.onSendingProgress.notify(file=name, progress=progress, tput=tput, progress_size=progress_size, full_size=round(report_filesize, 2), **kwargs)
                     divider += filesize / 10
 
@@ -223,7 +222,6 @@ class TCPSession:
         with self.lock:
             self.isSendingData = False
 
-        # logging.critical(f"FILE SENT to {kwargs.get('receiver')}")
         self.onSendingFinished.notify(self, file=name, tput=tput, execution_time=execution_time, **kwargs)
 
 class TCPServer:
