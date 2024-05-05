@@ -209,11 +209,11 @@ class Woodworm:
         filename = url.split('/')[-1]
         savePath = os.path.join(self.pathToFiles, filename)
         
-        downloader = http_services.FileDownloader(url, nickname)
+        downloader = http_services.FileDownloader(url)
         downloader.onDownloadCompleted.subscribe(self.downloader_onDownloadCompleted)
         downloader.onDownloadProgress.subscribe(self.downloader_onDownloadProgress)
 
-        download_thread = asyncio.to_thread(downloader.download_file, savePath)
+        download_thread = asyncio.to_thread(downloader.download_file, savePath, nickname=nickname)
         task = asyncio.create_task(download_thread)
         await irc_connection.send_query(nickname, f"Downloading of {url} started")
 
@@ -228,7 +228,7 @@ class Woodworm:
 
     async def downloader_onDownloadCompleted(self, *args, **kwargs):
         irc_connection = self.irc_connection
-        nickname = kwargs.get('owner')
+        nickname = kwargs.get('nickname')
         filename = kwargs.get('filename')
         filesize = kwargs.get('filesize')
         tput = kwargs.get('tput')
@@ -238,7 +238,7 @@ class Woodworm:
 
     async def downloader_onDownloadProgress(self, *args, **kwargs):
         irc_connection = self.irc_connection
-        nickname = kwargs.get('owner')
+        nickname = kwargs.get('nickname')
         filename = kwargs.get('filename')
         progress = kwargs.get('progress')
         tput = kwargs.get('tput')

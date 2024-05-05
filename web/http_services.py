@@ -5,14 +5,13 @@ import asyncio
 from tools import event
 
 class FileDownloader:
-    def __init__(self, url, owner):
+    def __init__(self, url):
         self.url = url
-        self.owner = owner
         self.onDownloadCompleted = event.Event()
         self.onDownloadProgress = event.Event()
 
 
-    def download_file(self, save_path):
+    def download_file(self, save_path, **kwargs):
         start_time = time.time()
         try:
             response = requests.get(self.url, stream=True)
@@ -45,7 +44,7 @@ class FileDownloader:
                         tput = round(tput, 2)
                         progress_size = round(progress_size, 2)
                         
-                        asyncio.run(self.onDownloadProgress.notify(owner=self.owner, filename=self.url, progress=progress, tput=tput, progress_size=progress_size, full_size=full_size))
+                        asyncio.run(self.onDownloadProgress.notify(filename=self.url, progress=progress, tput=tput, progress_size=progress_size, full_size=full_size, **kwargs))
                         divider += source_size / 10
             
             end_time = time.time()
@@ -56,7 +55,7 @@ class FileDownloader:
             tput = round(tput, 2)
 
             logging.info(f"File {self.url} downloaded successfully. Size: {size} MB, Time: {execution_time} s, Throughput: {tput} MB/s")
-            asyncio.run(self.onDownloadCompleted.notify(owner = self.owner, filename=self.url, filesize = full_size, tput = tput, time = execution_time))
+            asyncio.run(self.onDownloadCompleted.notify(filename=self.url, filesize = full_size, tput = tput, time = execution_time, **kwargs))
             return
         
         logging.error(f"Failed to download {self.url} file.")
