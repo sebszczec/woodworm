@@ -173,10 +173,12 @@ class TCPSession:
     def send_command(self, command):
         self.controlLink.send_command(command)
 
-    def send_file(self, filename, *args, **kwargs):
+    def send_file(self, **kwargs):
+        logging.critical(f"DUPA before LOCK {kwargs.get('receiver')}")
         with self.lock:
             self.isSendingData = True
 
+        filename = kwargs.get("filename")
         logging.info(f"Sending file '{filename}'")
         filesize = os.path.getsize(filename)
         report_filesize = int(filesize) / 1024 / 1024
@@ -207,7 +209,8 @@ class TCPSession:
                     tput = round(tput, 2)
                     progress_size = round(progress_size, 2)
                     
-                    asyncio.run(self.onSendingProgress.notify(filename=name, progress=progress, tput=tput, progress_size=progress_size, full_size=round(report_filesize, 2), **kwargs))
+                    # logging.critical(f"SENDING FILE to {kwargs.get('receiver')}")
+                    asyncio.run(self.onSendingProgress.notify(file=name, progress=progress, tput=tput, progress_size=progress_size, full_size=round(report_filesize, 2), **kwargs))
                     divider += filesize / 10
 
         end_time = time.time()
@@ -222,7 +225,8 @@ class TCPSession:
         with self.lock:
             self.isSendingData = False
 
-        asyncio.run(self.onSendingFinished.notify(self, filename=name, tput=tput, execution_time=execution_time, *args, **kwargs))
+        # logging.critical(f"FILE SENT to {kwargs.get('receiver')}")
+        asyncio.run(self.onSendingFinished.notify(self, file=name, tput=tput, execution_time=execution_time, **kwargs))
 
 class TCPServer:
     def __init__(self, host, port):
