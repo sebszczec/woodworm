@@ -238,10 +238,20 @@ class Woodworm:
         irc_connection = args[0]
         nickname = kwargs.get('nickname')
         irc_connection.send_query(nickname, "Shutting down...")
-        
-        # TODO: Fix this to exit gracefully
+      
         self.irc_connection.stop()
         self.tcp_server.stop()
+
+        for bot in self.botnetDB.get_bots().values():
+            tcpSession = bot.get_tcp_session()
+            if tcpSession.isActive:
+                tcpSession.isActive = False
+                tcpSession.stop()
+            tcpSession = bot.get_reversed_tcp_session()
+            if tcpSession.isActive:
+                tcpSession.isActive = False
+                tcpSession.stop()  
+
         sleep(1)
         self.isLooped = False
 

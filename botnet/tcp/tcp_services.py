@@ -49,6 +49,10 @@ class TCPConnection:
             except socket.timeout:
                 continue
             except ConnectionResetError:
+                logging.error(f"{self.linkType}: Connection reset detected")
+                break
+            except Exception as e:
+                logging.error(f"{self.linkType}: Error while receiving data: {e}")
                 break
 
             if not data:
@@ -60,7 +64,12 @@ class TCPConnection:
         self.onConnectionClosed.notify(self)
 
     def send_command(self, command):
-        self.socket.send(command.encode())
+        try:
+            self.socket.send(command.encode())
+        except ConnectionResetError:
+            logging.error(f"{self.linkType}: Connection reset detected")
+        except Exception as e:
+            logging.error(f"{self.linkType}: Error while sending command: {e}")
 
     def handle_command(self, command):
         logging.info(f"{self.linkType}: Received TCP command '{command}' from {self.socket.getpeername()[0]}")
@@ -102,7 +111,14 @@ class TCPConnection:
             return
 
     def send_binary_data(self, data):
-        self.socket.send(data)
+        try:
+            self.socket.send(data)
+        except ConnectionResetError:
+            logging.error(f"{self.linkType}: Connection reset detected")
+            return False
+        except Exception as e:
+            logging.error(f"{self.linkType}: Error while sending binary data: {e}")
+            return False
 
 
     def receive_file(self, filename, filesize):
@@ -115,6 +131,12 @@ class TCPConnection:
                     data = self.socket.recv(1024)
                 except socket.timeout:
                     continue
+                except ConnectionResetError:
+                    logging.error(f"{self.linkType}: Connection reset detected")
+                    return
+                except Exception as e:
+                    logging.error(f"{self.linkType}: Error while receiving file: {e}")
+                    return
                 
                 if not data:
                     break
@@ -130,6 +152,7 @@ class TCPConnection:
         return self.socketInfo
 
     def close(self):
+        self.isLoop = False
         self.socket.close()
 
 
@@ -142,6 +165,13 @@ class TCPSession:
         self.lock = threading.Lock()
         self.onSendingFinished = event.Event()
         self.onSendingProgress = event.Event()
+
+    def stop(self):
+        if self.dataLink is not None:
+            self.dataLink.close()
+       
+        if self.controlLink is not None:
+            self.controlLink.close()
 
     def set_data_link(self, dataLink : TCPConnection):
         self.dataLink = dataLink
@@ -199,7 +229,10 @@ class TCPSession:
 
         with open(filename, "rb") as file:
             for data in file:
-                self.get_data_link().send_binary_data(data)
+                if self.get_data_link().send_binary_data(data) is False:
+                    logging.error(f"Error while sending file '{name}'")
+                    return
+                
                 size = size + len(data)
                 if trackProgress and size >= divider:
                     progress = int((size / filesize) * 100)
