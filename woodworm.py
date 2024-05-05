@@ -183,7 +183,7 @@ class Woodworm:
             irc_connection.send_query(nickname, f"Bot {receiver} is busy sending other file")
             return
         
-        thread = threading.Thread(target=tcpSession.send_file, kwargs={'filename' : file_path, 'nickname': nickname, 'receiver': receiver})
+        thread = threading.Thread(target=tcpSession.send_file, args=(file_path,), kwargs={'nickname': nickname, 'receiver': receiver})
         thread.start()
         
         irc_connection.send_query(nickname, f"Transfer of {filename} to {receiver} started")

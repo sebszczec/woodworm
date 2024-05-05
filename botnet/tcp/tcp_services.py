@@ -172,11 +172,10 @@ class TCPSession:
     def send_command(self, command):
         self.controlLink.send_command(command)
 
-    def send_file(self, **kwargs):
+    def send_file(self, filename, **kwargs):
         with self.lock:
             self.isSendingData = True
 
-        filename = kwargs.get("filename")
         logging.info(f"Sending file '{filename}'")
         filesize = os.path.getsize(filename)
         report_filesize = int(filesize) / 1024 / 1024
