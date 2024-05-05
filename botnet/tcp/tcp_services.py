@@ -238,13 +238,20 @@ class TCPServer:
         self.port = port
         self.server_socket = None
         self.clients = []
+        self.isLooped = False
         self.onConnectionRegistered = event.Event()
 
     def start(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(5)
+        self.isLooped = True
         logging.info(f"TCP Server started on {self.host}:{self.port}")
+
+    def stop(self):
+        self.isLooped = False
+        self.server_socket.close()
+        logging.info("TCP Server stopped")
 
     def listen_step(self, delay):
         time.sleep(delay)
@@ -260,10 +267,13 @@ class TCPServer:
             tcp_connection.start()
         except socket.timeout:
             return
+        except Exception as e:
+            logging.error(f"Error while accepting TCP connection: {e}")
+            return
 
     def listen(self, delay):
         logging.info("Listening for incoming TCP connections")
-        while True:
+        while self.isLooped:
             self.listen_step(delay)
 
     def tcpConnection_onConnectionClosed(self, *args, **kwargs):

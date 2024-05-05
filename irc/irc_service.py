@@ -14,6 +14,7 @@ class IRCConnection:
         self.IRC = None
         self.MSG_LEN = 2048
         self.isConnected = False
+        self.isLooped = False
         self.onConnected = event.Event()
         self.onBroadcastRequested = event.Event()
         self.onSpreadDetected = event.Event()
@@ -30,7 +31,16 @@ class IRCConnection:
     def connect(self):
         self.IRC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.IRC.connect((self.server, self.port))
+        self.isLooped = True
 
+    def stop(self):
+        self.send_data("QUIT")
+        self.isConnected = False
+        self.isLooped = False
+        self.IRC.close()
+        self.IRC = None
+
+        logging.info("IRC connection closed")
 
     def is_connected(self):
         if self.IRC is None:
@@ -102,7 +112,7 @@ class IRCConnection:
 
 
     def listen(self, delay):
-        while True:
+        while self.isLooped is True:
             self.listen_step(delay)
 
 

