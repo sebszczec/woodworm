@@ -22,6 +22,7 @@ IRC commands handled by <i>woodworm</i> when asked directly:
   <li>STAT file - prints file details</li>
   <li>STATUS - list of bots stored in botnet database</li>
   <li>SEND bot file - send a file to a bot using TCP connection</li>
+  <li>WGET file - download file from WWW page</li>
 </ul><br />
 
 <b>TCP</b><br /><br />
