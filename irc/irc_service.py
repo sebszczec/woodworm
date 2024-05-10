@@ -26,12 +26,15 @@ class IRCConnection:
         self.onCommandSTATUS = event.Event()
         self.onCommandWGET = event.Event()
         self.onCommandSHUTDOWN = event.Event()
+        self.onCommandFILES = event.Event()
 
 
     def connect(self):
+        logging.info(f"Connecting to {self.server}:{self.port}")
         self.IRC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.IRC.connect((self.server, self.port))
         self.isLooped = True
+        logging.info("Connected to IRC server")
 
     def stop(self):
         self.send_data("QUIT")
@@ -92,8 +95,6 @@ class IRCConnection:
         buffer = received.split("\r\n")
         
         for ircmsg in buffer:
-            logging.info(ircmsg)
-
             if ircmsg.startswith("PING :"):
                 self.handle_ping()
                 continue
@@ -103,13 +104,15 @@ class IRCConnection:
                 self.onConnected.notify(self)
                 continue
 
-            self.handle_channel_commands(ircmsg)
+            if self.handle_channel_commands(ircmsg):
+                continue
 
             if "PRIVMSG" in ircmsg:
                 self.handle_priv_message(ircmsg)
+                continue
 
+            logging.info(ircmsg)
             
-
 
     def listen(self, delay):
         while self.isLooped is True:
@@ -119,18 +122,25 @@ class IRCConnection:
     def handle_channel_commands(self, ircmsg):
         if "PING" in ircmsg:
             self.handle_ping()
+            return True
 
         if "BROADCAST" in ircmsg:
             self.handle_broadcast_request()
+            return True
 
         if "SPREAD" in ircmsg:
             self.handle_spread_detected(ircmsg)
+            return True
 
         if "PART" in ircmsg or "QUIT" in ircmsg:
             self.handle_part(ircmsg)
+            return True
 
         if "JOIN" in ircmsg:
             self.handle_join()
+            return True
+        
+        return False
 
 
     def handle_ping(self):
@@ -221,6 +231,14 @@ class IRCConnection:
         if "SHUTDOWN" in command:
             self.onCommandSHUTDOWN.notify(self, nickname=nickname)
             return
+        
+        if "FILES" in command:
+            command = command.split('FILES ', 1)[1]
+            files = eval(command)
+            self.onCommandFILES.notify(self, nickname=nickname, file=files)
+            return
+        
+        logging.error(f"Unknown command: {command} from {nickname}")
 
 
 

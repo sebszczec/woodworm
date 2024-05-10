@@ -8,6 +8,8 @@ class Context:
         self.connected = False
         self.TcpSession = tcp_services.TCPSession()
         self.TcpReversedSession = tcp_services.TCPSession()
+        self.fileList = list()
+        self.fileListRefreshTime = "Never"
 
     def get_ircNick(self):
         return self.ircNick
