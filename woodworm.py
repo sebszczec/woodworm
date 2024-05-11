@@ -178,6 +178,8 @@ class Woodworm:
         file_path = os.path.join(self.myContext.pathToFiles, random_file)
         thread = threading.Thread(target=tcpSession.send_file, args=(file_path,), kwargs={'nickname': self.ircNick, 'receiver': bot.get_ircNick()})
         thread.start()
+
+        self.irc_connection.send_message(f"Sending file {random_file} --> {bot.get_ircNick()}")
         
         
     def list_files(self):

@@ -147,6 +147,7 @@ class TCPConnection:
                     break
 
         logging.info(f"Received file '{filename}'")
+        # TODO: trigger an event
 
     def get_socket_info(self):
         return self.socketInfo

@@ -74,6 +74,7 @@ class CommandHandler:
         thread.start()
         
         irc_connection.send_query(nickname, f"Transfer of {filename} to {receiver} started")
+        irc_connection.send_message(f"Sending file {filename} --> {receiver}")
 
     
     def irc_onCommandHELP(self, *args, **kwargs):
