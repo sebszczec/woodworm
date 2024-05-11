@@ -61,14 +61,8 @@ class CommandHandler:
             irc_connection.send_query(nickname, f"Bot {receiver} not found")
             return
 
-        tcpSession = bot.get_tcp_session()
-
-        if not tcpSession.isActive:
-            logging.warning(f"Bot {receiver} has no connection, trying to use reversed connection")
-            tcpSession = bot.get_reversed_tcp_session()
-
-        if not tcpSession.isActive:
-            logging.error(f"Bot {receiver} has no active connections")
+        tcpSession = bot.get_active_tcp_session()
+        if tcpSession is None:
             irc_connection.send_query(nickname, f"Bot {receiver} has no active connections")
             return  
 

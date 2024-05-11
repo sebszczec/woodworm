@@ -242,7 +242,7 @@ class IRCConnection:
             self.onCommandFILES.notify(self, nickname=nickname, files=files)
             return
         
-        logging.error(f"Unknown command: {command} from {nickname}")
+        logging.warning(f"Unknown command: {command} from {nickname}")
 
 
 

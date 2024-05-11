@@ -11,6 +11,7 @@ import logging
 import displacement_handler
 import command_handler
 from tools import timer
+import random
 
 
 class Woodworm:
@@ -30,7 +31,8 @@ class Woodworm:
         self.ftpPassiveRange = range(int(config['ftp']['passiveRangeStart']), int(config['ftp']['passiveRangeStop']))
         self.my_ip = socket.gethostbyname(socket.gethostname())
 
-        self.getFileListTimer = timer.Timer(60, self.timer_onGetFilesTimeout, False)
+        self.getFileListTimer = timer.Timer(60, self.timer_onGetFilesTimeout, False)  
+        self.syncRandomFile = timer.Timer(65, self.timer_onSyncRandomFileTimeout, False) 
 
         self.myContext = context.Context(self.ircNick, self.my_ip, self.tcpPort, self.pathToFiles)
 
@@ -47,6 +49,7 @@ class Woodworm:
         self.ftp = ftp_services.FTPServer(self.my_ip, self.ftpPort, self.ftpUser, self.ftpPassword, self.ftpPassiveRange, self.pathToFiles)
 
         self.getFileListTimer.start()
+        self.syncRandomFile.start()
 
 
     def start(self, debug):
@@ -87,6 +90,7 @@ class Woodworm:
         irc_connection.send_query(nickname, "Shutting down...")
       
         self.getFileListTimer.stop()
+        self.syncRandomFile.stop()
 
         self.irc_connection.stop()
         self.tcp_server.stop()
@@ -141,6 +145,48 @@ class Woodworm:
             self.irc_connection.send_query(bot, "LS")
      
 
+
+    def timer_onSyncRandomFileTimeout(self, *args, **kwargs):
+        logging.debug("timer_onSyncRandomFileTimeout expired")
+        bot = self.botnetDB.get_random_bot()
+        if bot is None:
+            return
+
+        if bot.getFileListRefreshTime() == "Never":
+            return
+
+        myFiles = self.list_files()
+        hisFiles = bot.getFileList()
+
+        difference = [file for file in myFiles if file not in hisFiles]
+        if len(difference) == 0:
+            logging.debug(f"{bot.get_ircNick()} has got all the files I have")
+            return
+        
+        random_file = random.choice(difference)
+        logging.debug(f"Selected {random_file} to sync with {bot.get_ircNick()}")
+
+        tcpSession = bot.get_active_tcp_session()
+        if tcpSession is None:
+            logging.warning(f"Bot {bot.get_ircNick()} has no active connections")
+            return  
+
+        if tcpSession.isSendingData:
+            logging.warning(f"Bot {bot.get_ircNick()} is busy sending other file")
+            return
+        
+        file_path = os.path.join(self.myContext.pathToFiles, random_file)
+        thread = threading.Thread(target=tcpSession.send_file, args=(file_path,), kwargs={'nickname': self.ircNick, 'receiver': bot.get_ircNick()})
+        thread.start()
+        
+        
+    def list_files(self):
+        files = []
+        try:
+            files = os.listdir(self.myContext.pathToFiles)
+        except Exception as e:
+            logging.error(f"Error listing files: {str(e)}")
+        return files
 
     def another_loop(self):
         while True:
