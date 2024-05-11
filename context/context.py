@@ -38,7 +38,7 @@ class Context:
         result = self.tcpSession
         if not result.isActive:
             logging.warning(f"Bot {self.ircNick} has no connection, trying to use reversed connection")
-            result = self.tcpReversedConnection
+            result = self.tcpReversedSession
         
         if not result.isActive:
             logging.warning(f"Bot {self.ircNick} has no active connections")
@@ -50,7 +50,7 @@ class Context:
         self.tcpSession = None
 
     def onReversedConnectionClosed(self, *args, **kwargs):
-        self.tcpReversedConnection = None
+        self.tcpReversedSession = None
 
     def getFileList(self):
         return self.fileList
