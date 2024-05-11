@@ -233,7 +233,11 @@ class IRCConnection:
             return
         
         if "FILES" in command:
-            command = command.split('FILES ', 1)[1]
+            try:
+                command = command.split('FILES ', 1)[1]
+            except Exception as e:
+                logging.error(f"Error while handling FILES command: {e}")
+                return
             files = eval(command)
             self.onCommandFILES.notify(self, nickname=nickname, file=files)
             return
