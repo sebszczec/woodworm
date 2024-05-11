@@ -239,7 +239,7 @@ class IRCConnection:
                 logging.error(f"Error while handling FILES command: {e}")
                 return
             files = eval(command)
-            self.onCommandFILES.notify(self, nickname=nickname, file=files)
+            self.onCommandFILES.notify(self, nickname=nickname, files=files)
             return
         
         logging.error(f"Unknown command: {command} from {nickname}")
