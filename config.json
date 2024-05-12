@@ -1,6 +1,9 @@
 {
     "general": {
         "pathToFiles": "/home/slaugh/Downloads/d1",
+        "fileListRefreshTime": 60,
+        "syncFiles": true,
+        "fileSyncTime": 65,
         "tcpPort": 3000
     },
     "irc": {

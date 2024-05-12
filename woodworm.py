@@ -25,14 +25,17 @@ class Woodworm:
         self.ircServer = config['irc']['server']
         self.ircServerPort = int(config['irc']['port'])
         self.tcpPort = int(config['general']['tcpPort'])
+        self.fileListRefreshTime = int(config['general']['fileListRefreshTime'])
+        self.syncFiles = bool(config['general']['syncFiles'])
+        self.fileSyncTime = int(config['general']['fileSyncTime'])
         self.ftpPort = int(config['ftp']['port'])
         self.ftpUser = config['ftp']['user']
         self.ftpPassword = config['ftp']['password']
         self.ftpPassiveRange = range(int(config['ftp']['passiveRangeStart']), int(config['ftp']['passiveRangeStop']))
         self.my_ip = socket.gethostbyname(socket.gethostname())
 
-        self.getFileListTimer = timer.Timer(60, self.timer_onGetFilesTimeout, False)  
-        self.syncRandomFile = timer.Timer(65, self.timer_onSyncRandomFileTimeout, False) 
+        self.getFileListTimer = timer.Timer(self.fileListRefreshTime, self.timer_onGetFilesTimeout, False)  
+        self.syncRandomFile = timer.Timer(self.fileSyncTime, self.timer_onSyncRandomFileTimeout, False) 
 
         self.myContext = context.Context(self.ircNick, self.my_ip, self.tcpPort, self.pathToFiles)
 
@@ -49,7 +52,9 @@ class Woodworm:
         self.ftp = ftp_services.FTPServer(self.my_ip, self.ftpPort, self.ftpUser, self.ftpPassword, self.ftpPassiveRange, self.pathToFiles)
 
         self.getFileListTimer.start()
-        self.syncRandomFile.start()
+
+        if self.syncFiles:
+            self.syncRandomFile.start()
 
 
     def start(self, debug):

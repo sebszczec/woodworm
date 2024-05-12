@@ -104,10 +104,10 @@ class CommandHandler:
 
             irc_connection.send_query(nickname, info)
             
-            info = f"BOT {bot.get_ircNick()} has {len(bot.fileList)} files: {bot.fileList}"
+            info = f"BOT: {bot.get_ircNick()} has {len(bot.fileList)} files: {bot.fileList}"
             irc_connection.send_query(nickname, info)
 
-            info = f"BOT {bot.get_ircNick()} files last refreshed: {bot.fileListRefreshTime}"
+            info = f"BOT: {bot.get_ircNick()} files last refreshed: {bot.fileListRefreshTime}"
             irc_connection.send_query(nickname, info)
 
     
