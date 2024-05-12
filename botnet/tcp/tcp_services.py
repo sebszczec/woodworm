@@ -17,14 +17,15 @@ class TCPConnection:
         self.socket = socket
         self.linkType = linkType
         self.socketInfo = self.socket.getpeername()
-        self.onConnectionClosed = event.Event()
-        self.onIdentifyCommandReceived = event.Event()
         self.isSendingData = False
         self.lock = threading.Lock()
         self.downloadPath = '.'
         self.MAX_AUTH_RETRANSMISSIONS = 3
         self.retransmissions = 0
         self.isLoop = True
+        self.onConnectionClosed = event.Event()
+        self.onIdentifyCommandReceived = event.Event()
+        self.onFileReceived = event.Event()
 
     def get_link_type(self):
         return self.linkType
@@ -147,7 +148,8 @@ class TCPConnection:
                     break
 
         logging.info(f"Received file '{filename}'")
-        # TODO: trigger an event
+        self.onFileReceived.notify(self, filename=filename)
+
 
     def get_socket_info(self):
         return self.socketInfo
@@ -166,7 +168,8 @@ class TCPSession:
         self.lock = threading.Lock()
         self.onSendingFinished = event.Event()
         self.onSendingProgress = event.Event()
-
+        self.onFileReceived = event.Event()
+        
     def stop(self):
         if self.dataLink is not None:
             self.dataLink.close()
@@ -179,6 +182,7 @@ class TCPSession:
         self.dataLink.linkType = TCPConnection.LinkType.DATA
         self.dataLink.parent = self
         self.dataLink.onConnectionClosed.subscribe(self.onConnectionClosed)
+        self.dataLink.onFileReceived.subscribe(self.dataLink_onFileReceived)
 
     def get_data_link(self):
         return self.dataLink
@@ -265,6 +269,10 @@ class TCPSession:
             self.isSendingData = False
 
         self.onSendingFinished.notify(self, file=name, tput=tput, execution_time=execution_time, **kwargs)
+
+    def dataLink_onFileReceived(self, *args, **kwargs):
+        filename = kwargs.get("filename")
+        self.onFileReceived.notify(self, filename=filename)
 
 class TCPServer:
     def __init__(self, host, port):
