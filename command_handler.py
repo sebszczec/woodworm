@@ -147,7 +147,7 @@ class CommandHandler:
         filesize = kwargs.get('filesize')
         tput = kwargs.get('tput')
         time = kwargs.get('time')
-        irc_connection.send_query(nickname, f"File {filename} downloaded successfully. Size: {filesize} MB, Time: {time} s, Throughput: {tput} MB/s")
+        irc_connection.send_query(nickname, f"File {filename} downloaded successfully. Size: {filesize} MB, Time: {time} s, Throughput: {tput} Mb/s")
 
 
     def downloader_onDownloadProgress(self, *args, **kwargs):
@@ -158,7 +158,7 @@ class CommandHandler:
         tput = kwargs.get('tput')
         progress_size = kwargs.get('progress_size')
         full_size = kwargs.get('full_size')
-        irc_connection.send_query(nickname, f"Downloading {filename}: {progress}%, {progress_size} out of {full_size} MB, Throughput: {tput} MB/s")
+        irc_connection.send_query(nickname, f"Downloading {filename}: {progress}%, {progress_size} out of {full_size} MB, Throughput: {tput} Mb/s")
 
 
     def get_file_info(self, filename):

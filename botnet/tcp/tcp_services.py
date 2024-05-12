@@ -249,7 +249,7 @@ class TCPSession:
                     progress_start_time = end_time
                     last_progress_size = tmpSize
                     
-                    tput = progress_size / execution_time   
+                    tput = progress_size * 8 / execution_time   
                     tput = round(tput, 2)
                     progress_size = round(progress_size, 2) 
                     
@@ -258,12 +258,12 @@ class TCPSession:
 
         end_time = time.time()
         execution_time = end_time - start_time
-        tput = report_filesize / execution_time
+        tput = report_filesize * 8 / execution_time
 
         execution_time = round(execution_time, 2)
         tput = round(tput, 2)
 
-        logging.info(f"Sent file '{name}' in {execution_time} seconds, {tput} MB/s")
+        logging.info(f"Sent file '{name}' in {execution_time} seconds, {tput} Mb/s")
 
         with self.lock:
             self.isSendingData = False

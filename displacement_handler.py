@@ -64,7 +64,7 @@ class DisplacementHandler:
         receiver = kwargs.get('receiver')
         tput = kwargs.get('tput')
         execution_time = kwargs.get('execution_time')
-        self.irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {execution_time} seconds, {tput} MB/s")
+        self.irc_connection.send_query(nickname, f"File {filename} sent to {receiver} in {execution_time} seconds, {tput} Mb/s")
 
 
     def tcpSession_onSendingProgress(self, *args, **kwargs):
@@ -75,7 +75,7 @@ class DisplacementHandler:
         tput = kwargs.get('tput')
         progress_size = kwargs.get('progress_size')
         full_size = kwargs.get('full_size')
-        self.irc_connection.send_query(nickname, f"Sending {filename} to {receiver}: {progress}%, {progress_size} out of {full_size} MB, Throughput: {tput} MB/s")
+        self.irc_connection.send_query(nickname, f"Sending {filename} to {receiver}: {progress}%, {progress_size} out of {full_size} MB, Throughput: {tput} Mb/s")
 
     
     def tcpSession_onFileReceived(self, *args, **kwargs):

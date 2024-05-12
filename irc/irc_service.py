@@ -62,7 +62,7 @@ class IRCConnection:
 
 
     def send_data(self, command):
-        self.IRC.send(bytes(command + "\n", "UTF-8"))
+        self.IRC.send(bytes(command + "\r\n", "UTF-8"))
 
 
     def send_message(self, message):

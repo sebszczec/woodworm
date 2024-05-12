@@ -48,7 +48,7 @@ class FileDownloader:
                         progress_start_time = end_time
                         last_progress_size = tmpSize
                         
-                        tput = progress_size / execution_time   
+                        tput = progress_size * 8 / execution_time   
                         tput = round(tput, 2)
                         progress_size = round(progress_size, 2)   
                         
@@ -57,12 +57,12 @@ class FileDownloader:
             
             end_time = time.time()
             execution_time = end_time - start_time
-            tput = full_size / execution_time
+            tput = full_size * 8 / execution_time
 
             execution_time = round(execution_time, 2)
             tput = round(tput, 2)
 
-            logging.info(f"File {self.url} downloaded successfully. Size: {size} MB, Time: {execution_time} s, Throughput: {tput} MB/s")
+            logging.info(f"File {self.url} downloaded successfully. Size: {size} MB, Time: {execution_time} s, Throughput: {tput} Mb/s")
             self.onDownloadCompleted.notify(filename=self.url, filesize = round(full_size, 2), tput = tput, time = execution_time, **kwargs)
             return
         
