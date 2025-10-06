@@ -16,7 +16,6 @@ class CommandHandler:
         self.irc_connection.onCommandHELP.subscribe(self.irc_onCommandHELP)
         self.irc_connection.onCommandSTATUS.subscribe(self.irc_onCommandSTATUS)
         self.irc_connection.onCommandWGET.subscribe(self.irc_onCommandWGET)
-
         self.irc_connection.onCommandFILES.subscribe(self.irc_onCommandFILES)
 
 

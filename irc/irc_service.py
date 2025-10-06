@@ -153,7 +153,7 @@ class IRCConnection:
 
 
     def handle_spread_detected(self, ircmsg):
-        # logging.debug(f"{ircmsg}")
+        logging.debug(f"{ircmsg}")
         try:
             ip = ircmsg.split("ip:")[1].split(" ")[0]
             port = ircmsg.split("port:")[1].split()[0].strip('\r\n')

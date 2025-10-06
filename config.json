@@ -7,11 +7,11 @@
         "tcpPort": 3000
     },
     "irc": {
-        "nick": "woodworm9",
+        "nick": "worm_pl",
         "channel": "#vorest",
         "domain": "slaugh.pl",
         "server": "slaugh.pl",
-        "port": 2000
+        "port": 6667
     },
     "ftp": {
         "port": 3021,
