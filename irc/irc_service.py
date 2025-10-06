@@ -238,7 +238,7 @@ class IRCConnection:
             except Exception as e:
                 logging.error(f"Error while handling FILES command: {e}")
                 return
-            files = eval(command)
+            files = command
             self.onCommandFILES.notify(self, nickname=nickname, files=files)
             return
         
