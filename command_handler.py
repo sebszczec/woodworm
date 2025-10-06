@@ -24,7 +24,7 @@ class CommandHandler:
         nickname = kwargs.get('nickname')
         files = self.list_files()
         for file in files:
-            irc_connection.send_query(nickname, f"FILES: {file}")
+            irc_connection.send_query(nickname, f"FILES {file}")
 
 
     def irc_onCommandSTAT(self, *args, **kwargs):
