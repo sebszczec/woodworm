@@ -211,7 +211,7 @@ class TCPSession:
         with self.lock:
             self.isSendingData = True
 
-        logging.info(f"Sending file '{filename}'")
+        logging.debug(f"Sending file '{filename}'")
         filesize = os.path.getsize(filename)
         report_filesize = int(filesize) / 1024 / 1024
         name = os.path.basename(filename)
@@ -263,7 +263,7 @@ class TCPSession:
         execution_time = round(execution_time, 2)
         tput = round(tput, 2)
 
-        logging.info(f"Sent file '{name}' in {execution_time} seconds, {tput} Mb/s")
+        logging.debug(f"Sent file '{name}' in {execution_time} seconds, {tput} Mb/s")
 
         with self.lock:
             self.isSendingData = False
