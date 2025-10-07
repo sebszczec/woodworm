@@ -32,8 +32,8 @@ class Woodworm:
         self.ftpUser = config['ftp']['user']
         self.ftpPassword = config['ftp']['password']
         self.ftpPassiveRange = range(int(config['ftp']['passiveRangeStart']), int(config['ftp']['passiveRangeStop']))
-        # self.my_ip = ip.Ip.get_external_ip_requests()
-        self.my_ip = socket.gethostbyname(socket.gethostname())
+        self.my_ip = ip.Ip.get_external_ip_requests()
+        # self.my_ip = socket.gethostbyname(socket.gethostname())
 
         self.getFileListTimer = timer.Timer(self.fileListRefreshTime, self.timer_onGetFilesTimeout, False)  
         self.syncRandomFile = timer.Timer(self.fileSyncTime, self.timer_onSyncRandomFileTimeout, False) 
