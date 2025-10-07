@@ -28,6 +28,11 @@ class DisplacementHandler:
 
         if self.botnetDB.get_bot(nick) is None:
             bot = context.Context(nick, ip, port)
+            
+            self.botnetDB.add_bot(bot)
+            logging.info(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}")
+            logging.info(f"Number of bots: {len(self.botnetDB.get_bots())}")
+
             tcpClient = tcp_services.TCPClient(ip, port)
             tcpSession = tcpClient.connect()
             if tcpSession is not None:
@@ -44,10 +49,10 @@ class DisplacementHandler:
             bot.get_reversed_tcp_session().onSendingProgress.subscribe(self.tcpSession_onSendingProgress)
             bot.get_reversed_tcp_session().onFileReceived.subscribe(self.tcpSession_onFileReceived)
                                  
-            self.botnetDB.add_bot(bot)
+            # self.botnetDB.add_bot(bot)
 
-            logging.info(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}")
-            logging.info(f"Number of bots: {len(self.botnetDB.get_bots())}")
+            # logging.info(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}")
+            # logging.info(f"Number of bots: {len(self.botnetDB.get_bots())}")
 
 
     def irc_onSomeoneLeftChannel(self, *args, **kwargs):
