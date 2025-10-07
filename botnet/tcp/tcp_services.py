@@ -104,7 +104,7 @@ class TCPConnection:
             if self.linkType == TCPConnection.LinkType.DATA:
                 self.isLoop = False
 
-            logging.info("{self.linkType}: Max AUTH retransmissions received, ingoring IDENTIFY procedure")
+            logging.info("{self.linkType}: Max AUTH retransmissions received, ignoring IDENTIFY procedure")
             return
 
         if "DSTOP_LOOP" in command:

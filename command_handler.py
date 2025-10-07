@@ -23,6 +23,11 @@ class CommandHandler:
         irc_connection = args[0]
         nickname = kwargs.get('nickname')
         files = self.list_files()
+
+        if len(files) == 0:
+            irc_connection.send_query(nickname, f"FILES EMPTY")
+            return
+
         for file in files:
             irc_connection.send_query(nickname, f"FILES {file}")
 
@@ -136,8 +141,10 @@ class CommandHandler:
             logging.warning(f"Bot not found: nick: {nickname}")
             return
         
-        if file not in bot.fileList:
+        if file != "EMPTY" and file not in bot.fileList:
+            logging.debug(f"Updating file list of {nickname} with file: {file}")
             bot.fileList.append(file)
+        
         bot.fileListRefreshTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 

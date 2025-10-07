@@ -7,7 +7,7 @@
         "tcpPort": 3000
     },
     "irc": {
-        "nick": "worm_pl",
+        "nick": "worm_pcmr",
         "channel": "#vorest",
         "domain": "slaugh.pl",
         "server": "slaugh.pl",
