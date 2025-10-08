@@ -20,7 +20,7 @@ class TCPConnection:
         self.isSendingData = False
         self.lock = threading.Lock()
         self.downloadPath = '.'
-        self.MAX_AUTH_RETRANSMISSIONS = 3
+        self.MAX_AUTH_RETRANSMISSIONS = 10
         self.retransmissions = 0
         self.isLoop = True
         self.onConnectionClosed = event.Event()
