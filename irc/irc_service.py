@@ -18,6 +18,7 @@ class IRCConnection:
         self.onConnected = event.Event()
         self.onBroadcastRequested = event.Event()
         self.onSpreadDetected = event.Event()
+        self.onSpreadAcknowledged = event.Event()
         self.onSomeoneLeftChannel = event.Event()
         self.onCommandLS = event.Event()
         self.onCommandSTAT = event.Event()
@@ -240,6 +241,11 @@ class IRCConnection:
                 return
             files = command
             self.onCommandFILES.notify(self, nickname=nickname, files=files)
+            return
+        
+        if "SPRACK" in command:          
+            logging.info(f"SPRACK command received from {nickname}")
+            self.onSpreadAcknowledged.notify(self, ircNick=nickname)
             return
         
         #logging.warning(f"Unknown command: {command} from {nickname}")

