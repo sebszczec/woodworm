@@ -1,6 +1,7 @@
 import socket
 import threading
 import os
+import random
 from tools import event
 import time
 import logging
@@ -124,7 +125,8 @@ class TCPConnection:
 
     def receive_file(self, filename, filesize):
         logging.debug(f"{self.linkType}: Receiving file '{filename}'")
-        file = os.path.join(self.downloadPath, filename)
+        filename_r = filename + str(int(time.time() * 1000)) + str(random.randint(1, 9999))
+        file = os.path.join(self.downloadPath, filename_r)
         size = 0
         with open(file, "wb") as file:
             while True:
@@ -146,6 +148,9 @@ class TCPConnection:
                 size = size + len(data)
                 if size >= int(filesize):
                     break
+
+        if os.path.exists(os.path.join(self.downloadPath, filename)) is False:
+            os.rename(os.path.join(self.downloadPath, filename_r), os.path.join(self.downloadPath, filename))
 
         logging.info(f"Received file '{filename}'")
         self.onFileReceived.notify(self, filename=filename)
@@ -263,7 +268,7 @@ class TCPSession:
         execution_time = round(execution_time, 2)
         tput = round(tput, 2)
 
-        logging.debug(f"Sent file '{name}' in {execution_time} seconds, {tput} Mb/s")
+        logging.info(f"Sent file '{name}' in {execution_time} seconds, {tput} Mb/s")
 
         with self.lock:
             self.isSendingData = False
