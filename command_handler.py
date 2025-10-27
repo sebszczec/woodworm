@@ -189,6 +189,7 @@ class CommandHandler:
         files = []
         try:
             files = os.listdir(self.myContext.pathToFiles)
+            files = [f for f in files if not f.endswith('.part')]
         except Exception as e:
             logging.error(f"Error listing files: {str(e)}")
         return files

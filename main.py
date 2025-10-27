@@ -1,4 +1,3 @@
-import asyncio
 import woodworm
 import sys
 import asyncio

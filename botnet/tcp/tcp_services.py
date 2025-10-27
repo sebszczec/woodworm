@@ -125,7 +125,7 @@ class TCPConnection:
 
     def receive_file(self, filename, filesize):
         logging.debug(f"{self.linkType}: Receiving file '{filename}'")
-        filename_r = filename + str(int(time.time() * 1000)) + str(random.randint(1, 9999))
+        filename_r = filename + str(int(time.time() * 1000)) + str(random.randint(1, 9999)) + ".part"
         file = os.path.join(self.downloadPath, filename_r)
         size = 0
         with open(file, "wb") as file:
@@ -151,6 +151,9 @@ class TCPConnection:
 
         if os.path.exists(os.path.join(self.downloadPath, filename)) is False:
             os.rename(os.path.join(self.downloadPath, filename_r), os.path.join(self.downloadPath, filename))
+        
+        if os.path.exists(os.path.join(self.downloadPath, filename_r)):
+            os.remove(os.path.join(self.downloadPath, filename_r))
 
         logging.info(f"Received file '{filename}'")
         self.onFileReceived.notify(self, filename=filename)
