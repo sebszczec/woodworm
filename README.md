@@ -137,6 +137,11 @@ python main.py
 
 # Run with custom config file
 python main.py config_custom.json
+
+# Run as docker
+docker compose build # will download code from repository, does not use local code
+docker compose run --rm stock-monitor
+
 ```
 
 ## Important Notes
