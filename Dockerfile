@@ -1,25 +1,24 @@
-# Dockerfile dla aplikacji Python3 z pyftpdlib i requests
 FROM python:3.11-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Zainstaluj certyfikaty (opcjonalne) i odśwież pip
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
- && rm -rf /var/lib/apt/lists/* \
- && pip install --no-cache-dir --upgrade pip
+# Clone the repository
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 https://github.com/sebszczec/woodworm.git .
 
-# Zainstaluj dodatkowe biblioteki
-RUN pip install --no-cache-dir pyftpdlib requests
+# Install Python dependencies
+RUN pip install --no-cache-dir pyftpdlib>=1.7.0 requests>=2.28.0
 
-# Skopiuj aplikację do obrazu
-COPY . /app
+# Default config file
+ENV CONFIG_FILE=config.json
 
-# Expose application ports and passive FTP range
-EXPOSE 3000 3021 60000-65535
+# Expose ports
+# 3000 - TCP connections
+EXPOSE 3000/tcp
+# 3021 - FTP connection
+EXPOSE 3021/tcp
+# 60000-65535 - Passive FTP ports
+EXPOSE 60000-65535/tcp
 
-# Uruchom main.py z argumentem config_1.json
-CMD ["python", "main.py", "config_1.json"]
+# Run main.py with config file argument
+CMD ["sh", "-c", "python main.py ${CONFIG_FILE}"]

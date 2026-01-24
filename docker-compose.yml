@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  woodworm:
+    build: .
+    container_name: woodworm
+    environment:
+      CONFIG_FILE: config_1.json
+    ports:
+      # TCP connections
+      - "3000:3000/tcp"
+      # FTP connection
+      - "3021:3021/tcp"
+      # Passive FTP ports
+      - "60000-65535:60000-65535/tcp"
+    volumes:
+      # Mount config files from host
+      - ./config.json:/app/config.json:ro
+      - ./config_1.json:/app/config_1.json:ro
+      - ./config_2.json:/app/config_2.json:ro
+      - ./download:/download
+    restart: unless-stopped
