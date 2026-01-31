@@ -4,7 +4,8 @@
         "fileListRefreshTime": 60,
         "syncFiles": true,
         "fileSyncTime": 65,
-        "tcpPort": 3000
+        "tcpPort": 3000,
+        "ip": "127.0.0.1"
     },
     "irc": {
         "nick": "worm_pcmr",
