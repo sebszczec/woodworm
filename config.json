@@ -17,7 +17,7 @@
     "ftp": {
         "port": 3021,
         "passiveRangeStart": 60000,
-        "passiveRangeStop": 65535,
+        "passiveRangeStop": 60010,
         "user": "woodworm",
         "password": "12345"
     }

@@ -17,8 +17,8 @@ ENV CONFIG_FILE=config.json
 EXPOSE 3000/tcp
 # 3021 - FTP connection
 EXPOSE 3021/tcp
-# 60000-65535 - Passive FTP ports
-EXPOSE 60000-65535/tcp
+# 60000-60010 - Passive FTP ports
+EXPOSE 60000-60010/tcp
 
 # Run main.py with config file argument
 CMD ["sh", "-c", "python main.py ${CONFIG_FILE}"]

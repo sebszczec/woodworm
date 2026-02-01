@@ -12,7 +12,7 @@ services:
       # FTP connection
       - "3021:3021/tcp"
       # Passive FTP ports
-      - "60000-65535:60000-65535/tcp"
+      - "60000-60010:60000-60010/tcp"
     volumes:
       # Mount config files from host
       - ./config.json:/app/config.json:ro
