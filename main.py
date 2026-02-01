@@ -49,6 +49,6 @@ if __name__ == "__main__":
     try:
         worm.start(False) 
     except Exception as e:
-        logger.critical(f"Unhandled exception: {str(e)}")
+        logger.critical("Unhandled exception occurred!", exc_info=True)
         sys.exit(1)
     
