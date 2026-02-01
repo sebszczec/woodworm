@@ -6,6 +6,7 @@ services:
     container_name: woodworm
     environment:
       CONFIG_FILE: config_1.json
+    dns: 8.8.8.8
     ports:
       # TCP connections
       - "3000:3000/tcp"
